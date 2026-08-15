@@ -143,7 +143,7 @@ export default function RootLayout() {
     };
   }, [isAuthenticated]);
 
-  // Biometric authentication trigger
+  // Biometric & Passcode authentication trigger
   const authenticateUser = async () => {
     if ((Platform.OS as string) === 'web') {
       setIsLocked(false);
@@ -153,16 +153,19 @@ export default function RootLayout() {
     try {
       const hasHardware = await LocalAuthentication.hasHardwareAsync();
       const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+      const enrolledLevel = await LocalAuthentication.getEnrolledLevelAsync();
 
-      if (!hasHardware || !isEnrolled) {
+      if (!hasHardware && !isEnrolled && enrolledLevel === LocalAuthentication.SecurityLevel.NONE) {
         setIsLocked(false);
         return;
       }
 
       const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: 'Unlock Pocksy with Face ID or Fingerprint',
+        promptMessage: 'Unlock Pocksy',
         fallbackLabel: 'Use Device Passcode',
+        cancelLabel: 'Cancel',
         disableDeviceFallback: false,
+        requireConfirmation: false,
       });
 
       if (result.success) {

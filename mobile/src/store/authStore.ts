@@ -13,6 +13,7 @@ import { authService } from '@/services/authService';
 
 const TOKEN_KEY = 'pocksy_auth_token';
 const ONBOARDING_KEY = 'pocksy_has_seen_onboarding';
+const USER_KEY = 'pocksy_auth_user';
 
 // SecureStore is not available on web, use localStorage fallback
 async function saveToken(token: string): Promise<void> {
@@ -71,6 +72,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { user, token } = await authService.login(payload);
       await saveToken(token);
       await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
+      await AsyncStorage.setItem(USER_KEY, JSON.stringify(user));
       set({ user, token, isAuthenticated: true, hasSeenOnboarding: true, isLoading: false });
     } catch (err: any) {
       set({ isLoading: false, error: err.message || 'Login failed' });
@@ -84,6 +86,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { user, token } = await authService.register(payload);
       await saveToken(token);
       await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
+      await AsyncStorage.setItem(USER_KEY, JSON.stringify(user));
       set({ user, token, isAuthenticated: true, hasSeenOnboarding: true, isLoading: false });
     } catch (err: any) {
       set({ isLoading: false, error: err.message || 'Registration failed' });
@@ -94,6 +97,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   fetchUser: async () => {
     try {
       const user = await authService.getMe();
+      await AsyncStorage.setItem(USER_KEY, JSON.stringify(user));
       set({ user });
     } catch (err: any) {
       if (err?.statusCode === 401) {
@@ -106,6 +110,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   updateProfile: async (payload) => {
     try {
       const updatedUser = await authService.updateProfile(payload);
+      await AsyncStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
       set({ user: updatedUser });
     } catch (err: any) {
       throw err;
@@ -120,6 +125,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     try {
       await deleteToken();
+      await AsyncStorage.removeItem(USER_KEY);
     } catch (e) {
       console.warn('Error deleting token:', e);
     }
@@ -135,16 +141,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   loadPersistedState: async () => {
     try {
-      const [token, hasSeenOnboardingStr] = await Promise.all([
+      const [token, hasSeenOnboardingStr, userStr] = await Promise.all([
         getToken(),
         AsyncStorage.getItem(ONBOARDING_KEY),
+        AsyncStorage.getItem(USER_KEY),
       ]);
 
       const hasSeenOnboarding = hasSeenOnboardingStr === 'true';
+      let parsedUser: User | null = null;
+      if (userStr) {
+        try {
+          parsedUser = JSON.parse(userStr);
+        } catch {}
+      }
 
       if (token) {
         set({
           token,
+          user: parsedUser,
           isAuthenticated: true,
           hasSeenOnboarding: true,
           isLoading: false,

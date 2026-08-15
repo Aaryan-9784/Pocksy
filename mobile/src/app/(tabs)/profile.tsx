@@ -30,6 +30,8 @@ import { RecurringModal } from '@/components/recurring/RecurringModal';
 import { GoalsModal } from '@/components/goals/GoalsModal';
 import { DebtModal } from '@/components/debts/DebtModal';
 import * as LocalAuthentication from 'expo-local-authentication';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const colors = Colors.light;
@@ -147,7 +149,10 @@ export default function ProfileScreen() {
   // Other state
   const [loggingOut, setLoggingOut] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
-  const [biometricType, setBiometricType] = useState<'Face ID' | 'Fingerprint' | 'Face ID / Fingerprint'>('Face ID / Fingerprint');
+  const [biometricType, setBiometricType] = useState<string>('Face ID & Fingerprint');
+  const [hasFaceId, setHasFaceId] = useState(false);
+  const [hasFingerprint, setHasFingerprint] = useState(false);
+  const [hasPasscode, setHasPasscode] = useState(false);
   const [budgetInput, setBudgetInput] = useState('');
   const [savingBudget, setSavingBudget] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -155,24 +160,38 @@ export default function ProfileScreen() {
   const [testingBio, setTestingBio] = useState(false);
   const [bioTestResult, setBioTestResult] = useState<'success' | 'failed' | null>(null);
 
-  // Load preferences from storage
+  // Load preferences and biometric hardware support from storage
   useEffect(() => {
     AsyncStorage.getItem('pocksy_biometric_enabled').then((val) => {
       setBiometricEnabled(val === 'true');
     });
 
     if ((Platform.OS as string) !== 'web') {
-      LocalAuthentication.supportedAuthenticationTypesAsync().then((types) => {
-        const hasFace = types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION);
-        const hasFingerprint = types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT);
-        if (hasFace && hasFingerprint) {
-          setBiometricType('Face ID / Fingerprint');
-        } else if (hasFace) {
-          setBiometricType('Face ID');
-        } else if (hasFingerprint) {
-          setBiometricType('Fingerprint');
+      (async () => {
+        try {
+          const types = await LocalAuthentication.supportedAuthenticationTypesAsync();
+          const face = types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION);
+          const finger = types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT) || types.includes(LocalAuthentication.AuthenticationType.IRIS);
+          const enrolledLevel = await LocalAuthentication.getEnrolledLevelAsync();
+          const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+
+          setHasFaceId(face);
+          setHasFingerprint(finger);
+          setHasPasscode(enrolledLevel >= LocalAuthentication.SecurityLevel.SECRET || isEnrolled);
+
+          if (face && finger) {
+            setBiometricType('Face ID & Fingerprint');
+          } else if (face) {
+            setBiometricType('Face ID');
+          } else if (finger) {
+            setBiometricType('Fingerprint');
+          } else {
+            setBiometricType('Device Passcode & PIN');
+          }
+        } catch (err) {
+          console.warn('Local authentication detection error:', err);
         }
-      }).catch(() => {});
+      })();
     }
 
     AsyncStorage.getItem('pocksy_reminders_enabled').then((val) => {
@@ -182,6 +201,18 @@ export default function ProfileScreen() {
     AsyncStorage.getItem('pocksy_reminder_time').then((val) => {
       if (val) setReminderTime(val);
     });
+
+    AsyncStorage.getItem('pocksy_notify_daily').then((val) => {
+      if (val !== null) setNotifyDailyLog(val === 'true');
+    });
+
+    AsyncStorage.getItem('pocksy_notify_budget').then((val) => {
+      if (val !== null) setNotifyBudgetAlert(val === 'true');
+    });
+
+    AsyncStorage.getItem('pocksy_notify_bill').then((val) => {
+      if (val !== null) setNotifyBillDue(val === 'true');
+    });
   }, []);
 
   useEffect(() => {
@@ -190,14 +221,98 @@ export default function ProfileScreen() {
     }
   }, [user?.name]);
 
-  // Face ID & Biometric handlers
-  const handleToggleBiometricSwitch = async (value: boolean) => {
-    setBiometricEnabled(value);
-    await AsyncStorage.setItem('pocksy_biometric_enabled', value ? 'true' : 'false');
-    if ((Platform.OS as string) !== 'web') {
+  // Face ID, Biometric & Device Passcode handlers
+  const handleToggleBiometricSwitch = async (nextValue: boolean) => {
+    if ((Platform.OS as string) === 'web') {
+      setBiometricEnabled(nextValue);
+      await AsyncStorage.setItem('pocksy_biometric_enabled', nextValue ? 'true' : 'false');
+      return;
+    }
+
+    if (!nextValue) {
+      // Security rule: When disabling, require verification by any supported method (Face ID, Fingerprint, or Passcode)
       try {
-        Haptics.selectionAsync();
-      } catch {}
+        if (Platform.OS !== 'web') {
+          try {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          } catch {}
+        }
+
+        const result = await LocalAuthentication.authenticateAsync({
+          promptMessage: 'Verify Identity to Turn Off App Lock',
+          fallbackLabel: 'Use Device Passcode',
+          cancelLabel: 'Cancel',
+          disableDeviceFallback: false,
+          requireConfirmation: false,
+        });
+
+        if (result.success) {
+          if (Platform.OS !== 'web') {
+            try {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            } catch {}
+          }
+          setBiometricEnabled(false);
+          await AsyncStorage.setItem('pocksy_biometric_enabled', 'false');
+          Alert.alert('App Lock Disabled', 'Biometric & Passcode protection has been turned off.');
+        } else {
+          if (Platform.OS !== 'web') {
+            try {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            } catch {}
+          }
+          Alert.alert(
+            'Verification Required',
+            'Authentication is required to turn off biometric lock. App lock remains enabled.'
+          );
+        }
+      } catch (err: any) {
+        Alert.alert('Authentication Error', err.message || 'Could not verify credentials.');
+      }
+    } else {
+      // When enabling, verify hardware/passcode support & authenticate
+      try {
+        if (Platform.OS !== 'web') {
+          try {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          } catch {}
+        }
+
+        const hasHardware = await LocalAuthentication.hasHardwareAsync();
+        const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+        const enrolledLevel = await LocalAuthentication.getEnrolledLevelAsync();
+
+        if (!hasHardware && !isEnrolled && enrolledLevel === LocalAuthentication.SecurityLevel.NONE) {
+          Alert.alert(
+            'Security Not Set Up',
+            'Please set up Face ID, Fingerprint, or a Device Passcode/PIN in your device settings first.'
+          );
+          return;
+        }
+
+        const result = await LocalAuthentication.authenticateAsync({
+          promptMessage: 'Verify Identity to Enable App Lock',
+          fallbackLabel: 'Use Device Passcode',
+          cancelLabel: 'Cancel',
+          disableDeviceFallback: false,
+          requireConfirmation: false,
+        });
+
+        if (result.success) {
+          if (Platform.OS !== 'web') {
+            try {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            } catch {}
+          }
+          setBiometricEnabled(true);
+          await AsyncStorage.setItem('pocksy_biometric_enabled', 'true');
+          Alert.alert('App Lock Enabled 🔒', 'Pocksy will now require Face ID, Fingerprint, or Passcode to open.');
+        } else {
+          Alert.alert('Verification Cancelled', 'Biometric lock was not enabled.');
+        }
+      } catch (err: any) {
+        Alert.alert('Setup Failed', err.message || 'Could not initialize biometric lock.');
+      }
     }
   };
 
@@ -222,26 +337,31 @@ export default function ProfileScreen() {
     try {
       const hasHardware = await LocalAuthentication.hasHardwareAsync();
       const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+      const enrolledLevel = await LocalAuthentication.getEnrolledLevelAsync();
 
-      if (!hasHardware || !isEnrolled) {
+      if (!hasHardware && !isEnrolled && enrolledLevel === LocalAuthentication.SecurityLevel.NONE) {
         setBioTestResult('failed');
         Alert.alert(
-          'Biometrics Not Enrolled',
-          'Please set up Face ID or Fingerprint recognition in your device settings.'
+          'Biometrics / Passcode Not Configured',
+          'Please set up Face ID, Fingerprint, or a Device Passcode in your phone system settings.'
         );
         return;
       }
 
       const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: 'Authenticate with Face ID / Fingerprint to test Pocksy App Lock',
+        promptMessage: 'Authenticate with Face ID, Fingerprint, or Passcode',
         fallbackLabel: 'Use Device Passcode',
+        cancelLabel: 'Cancel',
         disableDeviceFallback: false,
+        requireConfirmation: false,
       });
 
       if (result.success) {
-        try {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        } catch {}
+        if (Platform.OS !== 'web') {
+          try {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          } catch {}
+        }
         setBioTestResult('success');
       } else {
         setBioTestResult('failed');
@@ -307,8 +427,11 @@ export default function ProfileScreen() {
   };
 
   // Budget
+  const dashboardData = useDashboardStore((s) => s.data);
+  const currentBudget = (user?.monthlyBudget && user.monthlyBudget > 0) ? user.monthlyBudget : (dashboardData?.monthlyBudget && dashboardData.monthlyBudget > 0 ? dashboardData.monthlyBudget : 0);
+
   const handleOpenBudgetModal = () => {
-    setBudgetInput(user?.monthlyBudget ? user.monthlyBudget.toString() : '');
+    setBudgetInput(currentBudget > 0 ? currentBudget.toString() : '');
     setBudgetModalVisible(true);
   };
 
@@ -336,7 +459,7 @@ export default function ProfileScreen() {
 
       setBudgetModalVisible(false);
       refreshDashboard();
-      Alert.alert('Budget Saved ✨', `Monthly budget set to ${formatAmount(targetVal)}.`);
+      Alert.alert('Budget Saved ✨', `Monthly budget set to ${formatAmount(targetVal, currencyConfig)}.`);
     } catch (err: any) {
       Alert.alert('Budget Update Failed', err.message || 'Could not update budget.');
     } finally {
@@ -354,6 +477,9 @@ export default function ProfileScreen() {
       }
       await AsyncStorage.setItem('pocksy_reminders_enabled', remindersEnabled ? 'true' : 'false');
       await AsyncStorage.setItem('pocksy_reminder_time', reminderTime);
+      await AsyncStorage.setItem('pocksy_notify_daily', notifyDailyLog ? 'true' : 'false');
+      await AsyncStorage.setItem('pocksy_notify_budget', notifyBudgetAlert ? 'true' : 'false');
+      await AsyncStorage.setItem('pocksy_notify_bill', notifyBillDue ? 'true' : 'false');
       setRemindersModalVisible(false);
       Alert.alert(
         'Reminders Configured 🔔',
@@ -377,26 +503,45 @@ export default function ProfileScreen() {
       }
 
       const csv = await transactionService.exportCsv();
-      const filename = `pocksy_transactions_${new Date().toISOString().split('T')[0]}`;
+      const filename = `pocksy_transactions_${new Date().toISOString().split('T')[0]}.csv`;
 
       if (Platform.OS === 'web') {
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.setAttribute('href', url);
-        link.setAttribute('download', `${filename}.csv`);
+        link.setAttribute('download', filename);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        setExportModalVisible(false);
+        Alert.alert('Export Complete 📥', 'Your transactions CSV spreadsheet has been downloaded.');
       } else {
-        await Share.share({
-          message: csv,
-          title: 'Pocksy Transactions CSV Export',
-        });
-      }
+        const baseDir = FileSystem.cacheDirectory || FileSystem.documentDirectory || '';
+        const fileUri = `${baseDir}${filename}`;
 
-      setExportModalVisible(false);
-      Alert.alert('Export Complete 📥', 'Your transactions CSV spreadsheet has been exported.');
+        await FileSystem.writeAsStringAsync(fileUri, csv, {
+          encoding: FileSystem.EncodingType.UTF8,
+        });
+
+        const isSharingAvailable = await Sharing.isAvailableAsync();
+        if (isSharingAvailable) {
+          await Sharing.shareAsync(fileUri, {
+            mimeType: 'text/csv',
+            dialogTitle: 'Download CSV Spreadsheet',
+            UTI: 'public.comma-separated-values-text',
+          });
+        } else {
+          await Share.share({
+            title: 'Pocksy Transactions CSV Export',
+            url: fileUri,
+            message: csv,
+          });
+        }
+
+        setExportModalVisible(false);
+        Alert.alert('Export Ready 📥', 'CSV spreadsheet file generated successfully.');
+      }
     } catch (err: any) {
       Alert.alert('Export Failed', err.message || 'Could not export transactions.');
     } finally {
@@ -542,7 +687,7 @@ export default function ProfileScreen() {
             iconColor={colors.primary}
             iconBg={colors.primaryLight}
             label="Monthly Budget"
-            value={user?.monthlyBudget ? formatAmount(user.monthlyBudget) : 'Not configured'}
+            value={currentBudget > 0 ? formatAmount(currentBudget, currencyConfig) : 'Not configured'}
             onPress={handleOpenBudgetModal}
           />
           <MenuItem
@@ -1257,22 +1402,55 @@ export default function ProfileScreen() {
                 </View>
               )}
 
-              {/* Supported Security Mechanisms */}
+              {/* Supported Security Mechanisms — Dynamic Detection */}
               <Text style={[modalStyles.inputLabel, { marginTop: Spacing.lg, marginBottom: Spacing.xs }]}>
-                SUPPORTED HARDWARE
+                DEVICE SECURITY METHODS
+              </Text>
+              <Text style={{ fontSize: FontSize.xs, color: colors.textMuted, marginBottom: Spacing.sm, paddingHorizontal: 2 }}>
+                Your device supports the methods below. Only one is used at a time — biometric first, then passcode as fallback.
               </Text>
               <View style={modalStyles.channelList}>
                 <View style={modalStyles.bioRowItem}>
-                  <Ionicons name="scan-outline" size={20} color={colors.primary} />
-                  <Text style={modalStyles.channelText}>Face Recognition (Apple Face ID & Android Face)</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, flex: 1 }}>
+                    <Ionicons name="scan-outline" size={20} color={hasFaceId ? colors.primary : colors.textMuted} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[modalStyles.channelText, !hasFaceId && { color: colors.textMuted }]}>Face Recognition</Text>
+                      <Text style={{ fontSize: FontSize.xs - 1, color: colors.textMuted }}>Face ID / Face Unlock</Text>
+                    </View>
+                  </View>
+                  <View style={[modalStyles.statusBadge, { backgroundColor: hasFaceId ? '#DCFCE7' : colors.borderLight }]}>
+                    <Text style={[modalStyles.statusBadgeText, { color: hasFaceId ? '#16A34A' : colors.textMuted }]}>
+                      {hasFaceId ? 'AVAILABLE' : 'NOT AVAILABLE'}
+                    </Text>
+                  </View>
                 </View>
                 <View style={modalStyles.bioRowItem}>
-                  <Ionicons name="finger-print-outline" size={20} color={colors.primary} />
-                  <Text style={modalStyles.channelText}>Fingerprint Scanner (Touch ID & In-Display)</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, flex: 1 }}>
+                    <Ionicons name="finger-print-outline" size={20} color={hasFingerprint ? colors.primary : colors.textMuted} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[modalStyles.channelText, !hasFingerprint && { color: colors.textMuted }]}>Fingerprint Scanner</Text>
+                      <Text style={{ fontSize: FontSize.xs - 1, color: colors.textMuted }}>Touch ID / Sensor</Text>
+                    </View>
+                  </View>
+                  <View style={[modalStyles.statusBadge, { backgroundColor: hasFingerprint ? '#DCFCE7' : colors.borderLight }]}>
+                    <Text style={[modalStyles.statusBadgeText, { color: hasFingerprint ? '#16A34A' : colors.textMuted }]}>
+                      {hasFingerprint ? 'AVAILABLE' : 'NOT AVAILABLE'}
+                    </Text>
+                  </View>
                 </View>
                 <View style={[modalStyles.bioRowItem, { borderBottomWidth: 0 }]}>
-                  <Ionicons name="keypad-outline" size={20} color={colors.primary} />
-                  <Text style={modalStyles.channelText}>Device Passcode & PIN Fallback</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, flex: 1 }}>
+                    <Ionicons name="keypad-outline" size={20} color={hasPasscode ? colors.primary : colors.textMuted} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[modalStyles.channelText, !hasPasscode && { color: colors.textMuted }]}>Device Passcode & PIN</Text>
+                      <Text style={{ fontSize: FontSize.xs - 1, color: colors.textMuted }}>Always used as fallback</Text>
+                    </View>
+                  </View>
+                  <View style={[modalStyles.statusBadge, { backgroundColor: hasPasscode ? '#DCFCE7' : '#FEF2F2' }]}>
+                    <Text style={[modalStyles.statusBadgeText, { color: hasPasscode ? '#16A34A' : '#DC2626' }]}>
+                      {hasPasscode ? 'ACTIVE' : 'NOT SET'}
+                    </Text>
+                  </View>
                 </View>
               </View>
 

@@ -9,7 +9,10 @@
     "userInterfaceStyle": "light",
     "ios": {
       "bundleIdentifier": "com.pocksy.app",
-      "supportsTablet": false
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Allow Pocksy to use Face ID or Biometrics to securely authenticate and protect your financial records."
+      }
     },
     "android": {
       "package": "com.pocksy.app",
@@ -37,7 +40,14 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 120
         }
-      ]
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow Pocksy to use Face ID to securely authenticate and protect your financial records."
+        }
+      ],
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true,
