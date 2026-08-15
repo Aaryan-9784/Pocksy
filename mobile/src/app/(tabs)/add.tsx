@@ -238,7 +238,6 @@ export default function AddScreen() {
           <PageTitle
             title="New Transaction"
             subtitle={isExpense ? 'Record money spent or bills paid' : 'Record income, freelance, or gifts'}
-            badge={isExpense ? 'OUTFLOW' : 'INFLOW'}
             noPaddingHorizontal={true}
           />
 

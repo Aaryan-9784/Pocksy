@@ -1,6 +1,7 @@
 /**
  * Pocksy Analytics & Insights Screen
  * High-fidelity category spending analytics, period filters, and cashflow comparison
+ * Perfectly aligned with the Pocksy Luxury Design System
  */
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
@@ -14,11 +15,19 @@ import {
   Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows } from '@/constants/theme';
-import { EmptyState, LoadingState, CategoryIcon, AppHeader, PageTitle } from '@/components/ui';
+import {
+  EmptyState,
+  LoadingState,
+  CategoryIcon,
+  AppHeader,
+  PageTitle,
+  BudgetProgress,
+} from '@/components/ui';
 import { CategoryBudgetModal } from '@/components/budget/CategoryBudgetModal';
 import { transactionService } from '@/services/transactionService';
 import { budgetService } from '@/services/budgetService';
@@ -45,6 +54,7 @@ type PeriodType = 'this_month' | 'last_month' | 'all';
 
 export default function AnalyticsScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const [period, setPeriod] = useState<PeriodType>('this_month');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -75,7 +85,9 @@ export default function AnalyticsScreen() {
           endDate,
           limit: 500,
         }),
-        budgetService.getBudget(now.getMonth() + 1, now.getFullYear()).catch(() => ({ budget: { amount: 0, categoryBudgets: [] } })),
+        budgetService
+          .getBudget(now.getMonth() + 1, now.getFullYear())
+          .catch(() => ({ budget: { amount: 0, categoryBudgets: [] } })),
       ]);
 
       const catBudgets = budgetRes.budget?.categoryBudgets || [];
@@ -157,6 +169,11 @@ export default function AnalyticsScreen() {
   }, [period]);
 
   const onRefresh = useCallback(() => {
+    if (Platform.OS !== 'web') {
+      try {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } catch {}
+    }
     setRefreshing(true);
     fetchAnalytics(period);
   }, [period]);
@@ -171,16 +188,36 @@ export default function AnalyticsScreen() {
   };
 
   const netSavings = totalIncome - totalExpenses;
-  const savingsRate = totalIncome > 0 ? Math.max(0, Math.round((netSavings / totalIncome) * 100)) : 0;
+  const hasCashflow = totalIncome > 0 || totalExpenses > 0;
+  const savingsRate =
+    totalIncome > 0
+      ? Math.max(0, Math.round((netSavings / totalIncome) * 100))
+      : 0;
+
+  // Highlights computed data
+  const topCategory = useMemo(() => {
+    const sorted = breakdown.filter((b) => b.total > 0);
+    return sorted.length > 0 ? sorted[0] : null;
+  }, [breakdown]);
+
+  const totalTransactionsCount = useMemo(() => {
+    return breakdown.reduce((acc, curr) => acc + curr.count, 0);
+  }, [breakdown]);
 
   return (
     <View style={styles.container}>
       {/* Fixed Top Brand & Profile Header */}
-      <AppHeader showProfile={true} />
+      <AppHeader
+        showProfile={true}
+        onProfilePress={() => router.push('/(tabs)/profile')}
+      />
 
       <ScrollView
         style={styles.scrollContainer}
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing['5xl'] }]}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: insets.bottom + Spacing['5xl'] },
+        ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -191,267 +228,374 @@ export default function AnalyticsScreen() {
           />
         }
       >
-        {/* Page Title Block */}
+        {/* Standardized Page Title Block */}
         <PageTitle
           title="Insights & Budgets"
           subtitle="Smart overview of your cash flow & category limits"
-          noPaddingHorizontal={true}
         />
 
-      {/* Period Selector Tabs */}
-      <View style={styles.periodSwitcher}>
-        {(
-          [
-            { id: 'this_month', label: 'This Month' },
-            { id: 'last_month', label: 'Last Month' },
-            { id: 'all', label: 'All Time' },
-          ] as const
-        ).map((p) => {
-          const isSelected = period === p.id;
-          return (
-            <TouchableOpacity
-              key={p.id}
-              style={[styles.periodTab, isSelected && styles.periodTabActive]}
-              onPress={() => handlePeriodChange(p.id)}
-              activeOpacity={0.8}
-            >
+        {/* Period Selector Tabs */}
+        <View style={styles.periodSwitcher}>
+          {(
+            [
+              { id: 'this_month', label: 'This Month' },
+              { id: 'last_month', label: 'Last Month' },
+              { id: 'all', label: 'All Time' },
+            ] as const
+          ).map((p) => {
+            const isSelected = period === p.id;
+            return (
+              <TouchableOpacity
+                key={p.id}
+                style={[styles.periodTab, isSelected && styles.periodTabActive]}
+                onPress={() => handlePeriodChange(p.id)}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isSelected }}
+              >
+                {isSelected ? (
+                  <LinearGradient
+                    colors={colors.gradientPrimary}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.periodTabGradient}
+                  >
+                    <Text style={styles.periodTabTextActive}>{p.label}</Text>
+                  </LinearGradient>
+                ) : (
+                  <Text style={styles.periodTabText}>{p.label}</Text>
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Cash Flow Summary Hero Card */}
+        <View style={styles.cashflowCard}>
+          <View style={styles.cashflowTop}>
+            <View>
+              <View style={styles.labelWithIcon}>
+                <View style={styles.pulseDot} />
+                <Text style={styles.cashflowLabel}>NET CASH FLOW</Text>
+              </View>
               <Text
                 style={[
-                  styles.periodTabText,
-                  isSelected && styles.periodTabTextActive,
+                  styles.cashflowAmount,
+                  {
+                    color:
+                      !hasCashflow
+                        ? colors.textPrimary
+                        : netSavings >= 0
+                        ? colors.income
+                        : colors.expense,
+                  },
                 ]}
               >
-                {p.label}
+                {hasCashflow && netSavings > 0 ? '+' : ''}
+                {formatAmount(netSavings)}
               </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+            </View>
 
-      {/* Cash Flow Summary Card */}
-      <View style={styles.cashflowCard}>
-        <View style={styles.cashflowTop}>
-          <View>
-            <Text style={styles.cashflowLabel}>NET SAVINGS</Text>
-            <Text
+            {/* Savings Rate Badge */}
+            <View
               style={[
-                styles.cashflowAmount,
-                { color: netSavings >= 0 ? colors.income : colors.expense },
-              ]}
-            >
-              {netSavings >= 0 ? '+' : ''}
-              {formatAmount(netSavings)}
-            </Text>
-          </View>
-          <View
-            style={[
-              styles.savingsRateBadge,
-              {
-                backgroundColor:
-                  savingsRate >= 20
+                styles.savingsRateBadge,
+                {
+                  backgroundColor: !hasCashflow
+                    ? colors.cardMuted
+                    : savingsRate >= 20
                     ? colors.incomeLight
                     : savingsRate > 0
                     ? colors.warningLight
                     : colors.expenseLight,
-              },
-            ]}
-          >
-            <Ionicons
-              name={savingsRate >= 20 ? 'trending-up' : 'trending-down'}
-              size={14}
-              color={
-                savingsRate >= 20
-                  ? colors.income
-                  : savingsRate > 0
-                  ? colors.warning
-                  : colors.expense
-              }
-            />
-            <Text
-              style={[
-                styles.savingsRateText,
-                {
-                  color:
-                    savingsRate >= 20
+                },
+              ]}
+            >
+              <Ionicons
+                name={
+                  !hasCashflow
+                    ? 'remove-outline'
+                    : savingsRate >= 20
+                    ? 'trending-up'
+                    : savingsRate > 0
+                    ? 'trending-up'
+                    : 'trending-down'
+                }
+                size={14}
+                color={
+                  !hasCashflow
+                    ? colors.textSecondary
+                    : savingsRate >= 20
+                    ? colors.income
+                    : savingsRate > 0
+                    ? colors.warning
+                    : colors.expense
+                }
+              />
+              <Text
+                style={[
+                  styles.savingsRateText,
+                  {
+                    color: !hasCashflow
+                      ? colors.textSecondary
+                      : savingsRate >= 20
                       ? colors.income
                       : savingsRate > 0
                       ? colors.warning
                       : colors.expense,
-                },
-              ]}
-            >
-              {savingsRate}% Saved
-            </Text>
+                  },
+                ]}
+              >
+                {!hasCashflow ? 'No Activity' : `${savingsRate}% Saved`}
+              </Text>
+            </View>
           </View>
+
+          {/* Income vs Expense Split Tiles */}
+          <View style={styles.flowSplitRow}>
+            <View style={styles.flowSplitItem}>
+              <View style={[styles.flowIconBadge, { backgroundColor: colors.incomeLight }]}>
+                <Ionicons name="arrow-down" size={14} color={colors.income} />
+              </View>
+              <View>
+                <Text style={styles.flowSplitLabel}>Total Income</Text>
+                <Text style={[styles.flowSplitValue, { color: colors.income }]}>
+                  {formatAmount(totalIncome)}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.flowSplitDivider} />
+
+            <View style={styles.flowSplitItem}>
+              <View style={[styles.flowIconBadge, { backgroundColor: colors.expenseLight }]}>
+                <Ionicons name="arrow-up" size={14} color={colors.expense} />
+              </View>
+              <View>
+                <Text style={styles.flowSplitLabel}>Total Expenses</Text>
+                <Text style={[styles.flowSplitValue, { color: colors.expense }]}>
+                  {formatAmount(totalExpenses)}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Ratio bar */}
+          {hasCashflow && (
+            <View style={styles.ratioSection}>
+              <View style={styles.ratioBarTrack}>
+                <View
+                  style={[
+                    styles.ratioBarIncome,
+                    { flex: totalIncome > 0 ? totalIncome : 0.001 },
+                  ]}
+                />
+                <View
+                  style={[
+                    styles.ratioBarExpense,
+                    { flex: totalExpenses > 0 ? totalExpenses : 0.001 },
+                  ]}
+                />
+              </View>
+            </View>
+          )}
         </View>
 
-        {/* Ratio bar */}
-        {totalIncome + totalExpenses > 0 && (
-          <View style={styles.ratioBarTrack}>
-            <View
-              style={[
-                styles.ratioBarIncome,
-                {
-                  flex: totalIncome > 0 ? totalIncome : 0.001,
-                },
-              ]}
-            />
-            <View
-              style={[
-                styles.ratioBarExpense,
-                {
-                  flex: totalExpenses > 0 ? totalExpenses : 0.001,
-                },
-              ]}
+        {/* Monthly Budget Progress Card if active */}
+        {monthlyBudgetAmount > 0 && (
+          <View style={styles.sectionBudgetProgress}>
+            <BudgetProgress
+              spent={totalExpenses}
+              total={monthlyBudgetAmount}
             />
           </View>
         )}
 
-        {/* Breakdown chips */}
-        <View style={styles.ratioLabelsRow}>
-          <View style={styles.ratioLabelItem}>
-            <View style={[styles.ratioIndicator, { backgroundColor: colors.income }]} />
-            <Text style={styles.ratioLabelText}>Income: <Text style={{ fontWeight: FontWeight.bold }}>{formatAmount(totalIncome)}</Text></Text>
+        {/* Quick Highlights Row (When data exists) */}
+        {hasCashflow && (
+          <View style={styles.highlightsRow}>
+            {topCategory && (
+              <View style={styles.highlightCard}>
+                <View style={styles.highlightHeader}>
+                  <Ionicons name="flame-outline" size={14} color={colors.accent} />
+                  <Text style={styles.highlightTitle}>Top Spending</Text>
+                </View>
+                <Text style={styles.highlightValue} numberOfLines={1}>
+                  {topCategory.label}
+                </Text>
+                <Text style={styles.highlightSub}>
+                  {formatAmount(topCategory.total)} ({topCategory.percentage}%)
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.highlightCard}>
+              <View style={styles.highlightHeader}>
+                <Ionicons name="receipt-outline" size={14} color={colors.primary} />
+                <Text style={styles.highlightTitle}>Activity</Text>
+              </View>
+              <Text style={styles.highlightValue}>
+                {totalTransactionsCount} logs
+              </Text>
+              <Text style={styles.highlightSub}>
+                in selected period
+              </Text>
+            </View>
           </View>
-          <View style={styles.ratioLabelItem}>
-            <View style={[styles.ratioIndicator, { backgroundColor: colors.expense }]} />
-            <Text style={styles.ratioLabelText}>Expense: <Text style={{ fontWeight: FontWeight.bold }}>{formatAmount(totalExpenses)}</Text></Text>
+        )}
+
+        {/* Category Breakdown Section Header */}
+        <View style={styles.sectionHeader}>
+          <View>
+            <Text style={styles.sectionTitle}>Category Budgets & Spending</Text>
+            <Text style={styles.sectionCount}>
+              {breakdown.length} {breakdown.length === 1 ? 'Category' : 'Categories'} active
+            </Text>
           </View>
+
+          <TouchableOpacity
+            style={styles.setBudgetBtn}
+            onPress={() => {
+              if (Platform.OS !== 'web') {
+                try {
+                  Haptics.selectionAsync();
+                } catch {}
+              }
+              setBudgetModalVisible(true);
+            }}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Set category limits"
+          >
+            <Ionicons name="options-outline" size={14} color={colors.primary} />
+            <Text style={styles.setBudgetBtnText}>Set Limits</Text>
+          </TouchableOpacity>
         </View>
-      </View>
 
-      {/* Category Breakdown Header */}
-      <View style={styles.sectionHeader}>
-        <View>
-          <Text style={styles.sectionTitle}>Category Budgets & Spending</Text>
-          <Text style={styles.sectionCount}>{breakdown.length} Categories active</Text>
-        </View>
-        <TouchableOpacity
-          style={styles.setBudgetBtn}
-          onPress={() => {
-            if (Platform.OS !== 'web') {
-              try {
-                Haptics.selectionAsync();
-              } catch {}
-            }
-            setBudgetModalVisible(true);
-          }}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="options-outline" size={14} color={colors.primary} />
-          <Text style={styles.setBudgetBtnText}>Set Limits</Text>
-        </TouchableOpacity>
-      </View>
+        {/* Category Breakdown List or Empty State */}
+        {breakdown.length === 0 ? (
+          <View style={styles.emptyWrap}>
+            <EmptyState
+              vectorIcon="pie-chart-outline"
+              title="No spending data yet"
+              message="Add expense records in this period to visualize your breakdown and budget limits."
+              actionLabel="Add Transaction"
+              onAction={() => router.push('/(tabs)/add')}
+            />
+          </View>
+        ) : (
+          <View style={styles.breakdownList}>
+            {breakdown.map((cat) => {
+              const hasLimit = typeof cat.budgetLimit === 'number' && cat.budgetLimit > 0;
+              const limit = cat.budgetLimit || 0;
+              const isOverBudget = hasLimit && cat.total > limit;
+              const isNearLimit = hasLimit && !isOverBudget && cat.total >= limit * 0.8;
+              const budgetProgress = hasLimit
+                ? Math.min(100, Math.round((cat.total / limit) * 100))
+                : 0;
 
-      {breakdown.length === 0 ? (
-        <View style={styles.emptyWrap}>
-          <EmptyState
-            vectorIcon="pie-chart-outline"
-            title="No spending data yet"
-            message="Add expense records in this period to visualize your breakdown and budget limits."
-          />
-        </View>
-      ) : (
-        <View style={styles.breakdownList}>
-          {breakdown.map((cat) => {
-            const hasLimit = typeof cat.budgetLimit === 'number' && cat.budgetLimit > 0;
-            const limit = cat.budgetLimit || 0;
-            const isOverBudget = hasLimit && cat.total > limit;
-            const isNearLimit = hasLimit && !isOverBudget && cat.total >= limit * 0.8;
-            const budgetProgress = hasLimit ? Math.min(100, Math.round((cat.total / limit) * 100)) : 0;
+              return (
+                <View key={cat.id} style={styles.categoryRowCard}>
+                  <CategoryIcon categoryId={cat.id} size={44} />
 
-            return (
-              <View key={cat.id} style={styles.categoryRowCard}>
-                <CategoryIcon categoryId={cat.id} size={44} />
-
-                <View style={styles.catDetails}>
-                  <View style={styles.catTopLine}>
-                    <Text style={styles.catName}>{cat.label}</Text>
-                    <View style={styles.amountBox}>
-                      <Text style={styles.catAmount}>{formatAmount(cat.total)}</Text>
-                      {hasLimit && (
-                        <Text style={styles.catLimitAmount}> / {formatAmount(limit)}</Text>
-                      )}
+                  <View style={styles.catDetails}>
+                    <View style={styles.catTopLine}>
+                      <Text style={styles.catName} numberOfLines={1}>
+                        {cat.label}
+                      </Text>
+                      <View style={styles.amountBox}>
+                        <Text style={styles.catAmount}>{formatAmount(cat.total)}</Text>
+                        {hasLimit && (
+                          <Text style={styles.catLimitAmount}> / {formatAmount(limit)}</Text>
+                        )}
+                      </View>
                     </View>
-                  </View>
 
-                  {/* Progress bar */}
-                  <View style={styles.catProgressTrack}>
-                    <View
-                      style={[
-                        styles.catProgressFill,
-                        {
-                          width: `${Math.min(Math.max(hasLimit ? budgetProgress : cat.percentage, 4), 100)}%`,
-                          backgroundColor: isOverBudget
-                            ? colors.expense
-                            : isNearLimit
-                            ? colors.warning
-                            : cat.color,
-                        },
-                      ]}
-                    />
-                  </View>
-
-                  <View style={styles.catBottomLine}>
-                    <Text style={styles.catCountText}>
-                      {cat.count} transaction{cat.count !== 1 ? 's' : ''}
-                    </Text>
-
-                    {hasLimit ? (
+                    {/* Progress bar */}
+                    <View style={styles.catProgressTrack}>
                       <View
                         style={[
-                          styles.statusBadge,
+                          styles.catProgressFill,
                           {
+                            width: `${Math.min(
+                              Math.max(hasLimit ? budgetProgress : cat.percentage, 4),
+                              100
+                            )}%`,
                             backgroundColor: isOverBudget
-                              ? colors.expenseLight
+                              ? colors.expense
                               : isNearLimit
-                              ? colors.warningLight
-                              : colors.incomeLight,
+                              ? colors.warning
+                              : cat.color || colors.primary,
                           },
                         ]}
-                      >
-                        <Text
+                      />
+                    </View>
+
+                    <View style={styles.catBottomLine}>
+                      <Text style={styles.catCountText}>
+                        {cat.count} transaction{cat.count !== 1 ? 's' : ''}
+                      </Text>
+
+                      {hasLimit ? (
+                        <View
                           style={[
-                            styles.statusBadgeText,
+                            styles.statusBadge,
                             {
-                              color: isOverBudget
-                                ? colors.expense
+                              backgroundColor: isOverBudget
+                                ? colors.expenseLight
                                 : isNearLimit
-                                ? colors.warning
-                                : colors.income,
+                                ? colors.warningLight
+                                : colors.incomeLight,
                             },
                           ]}
                         >
-                          {isOverBudget
-                            ? `Over by ${formatAmount(cat.total - limit)}`
-                            : isNearLimit
-                            ? `${budgetProgress}% used`
-                            : `${budgetProgress}% on track`}
+                          <Text
+                            style={[
+                              styles.statusBadgeText,
+                              {
+                                color: isOverBudget
+                                  ? colors.expense
+                                  : isNearLimit
+                                  ? colors.warningText || colors.warning
+                                  : colors.income,
+                              },
+                            ]}
+                          >
+                            {isOverBudget
+                              ? `Over by ${formatAmount(cat.total - limit)}`
+                              : isNearLimit
+                              ? `${budgetProgress}% used`
+                              : `${budgetProgress}% on track`}
+                          </Text>
+                        </View>
+                      ) : (
+                        <Text
+                          style={[
+                            styles.catPercentBadge,
+                            { color: cat.color || colors.textSecondary },
+                          ]}
+                        >
+                          {cat.percentage}% of total
                         </Text>
-                      </View>
-                    ) : (
-                      <Text style={[styles.catPercentBadge, { color: cat.color }]}>
-                        {cat.percentage}% of total
-                      </Text>
-                    )}
+                      )}
+                    </View>
                   </View>
                 </View>
-              </View>
-            );
-          })}
-        </View>
-      )}
+              );
+            })}
+          </View>
+        )}
 
-      {/* Category Budget Modal */}
-      <CategoryBudgetModal
-        visible={budgetModalVisible}
-        onClose={() => setBudgetModalVisible(false)}
-        onSaved={() => fetchAnalytics(period)}
-        initialCategoryBudgets={categoryBudgets}
-        totalBudget={monthlyBudgetAmount}
-      />
-    </ScrollView>
-  </View>
+        {/* Category Budget Modal */}
+        <CategoryBudgetModal
+          visible={budgetModalVisible}
+          onClose={() => setBudgetModalVisible(false)}
+          onSaved={() => fetchAnalytics(period)}
+          initialCategoryBudgets={categoryBudgets}
+          totalBudget={monthlyBudgetAmount}
+        />
+      </ScrollView>
+    </View>
   );
 }
 
@@ -466,58 +610,34 @@ const styles = StyleSheet.create({
   content: {
     paddingBottom: Spacing['5xl'],
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.xs,
-    paddingBottom: Spacing.sm,
-  },
-  headerTextGroup: {
-    flex: 1,
-  },
-  title: {
-    fontSize: FontSize['2xl'],
-    fontWeight: FontWeight.bold,
-    color: colors.textPrimary,
-    letterSpacing: -0.5,
-  },
-  subtitle: {
-    fontSize: FontSize.xs,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  headerActionButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: colors.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    ...Shadows.sm,
-  },
   periodSwitcher: {
     flexDirection: 'row',
     backgroundColor: colors.card,
     borderRadius: BorderRadius.lg,
     padding: 4,
     marginHorizontal: Spacing.xl,
-    marginVertical: Spacing.md,
+    marginTop: Spacing.xs,
+    marginBottom: Spacing.base,
     borderWidth: 1,
     borderColor: colors.borderLight,
     ...Shadows.sm,
   },
   periodTab: {
     flex: 1,
-    paddingVertical: Spacing.sm,
+    paddingVertical: 10,
     borderRadius: BorderRadius.md,
     alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
   periodTabActive: {
-    backgroundColor: colors.primary,
+    backgroundColor: 'transparent',
+  },
+  periodTabGradient: {
+    ...StyleSheet.absoluteFill,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   periodTabText: {
     fontSize: FontSize.xs,
@@ -525,6 +645,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   periodTabTextActive: {
+    fontSize: FontSize.xs,
     color: '#FFFFFF',
     fontWeight: FontWeight.bold,
   },
@@ -535,14 +656,26 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     borderWidth: 1,
     borderColor: colors.borderLight,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.base,
     ...Shadows.sm,
   },
   cashflowTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.base,
+  },
+  labelWithIcon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  pulseDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.primary,
   },
   cashflowLabel: {
     fontSize: FontSize['2xs'],
@@ -552,9 +685,8 @@ const styles = StyleSheet.create({
   },
   cashflowAmount: {
     fontSize: FontSize['2xl'],
-    fontWeight: FontWeight.bold,
-    letterSpacing: -0.5,
-    marginTop: 2,
+    fontWeight: FontWeight.heavy,
+    letterSpacing: -0.6,
   },
   savingsRateBadge: {
     flexDirection: 'row',
@@ -568,12 +700,52 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     fontWeight: FontWeight.bold,
   },
+  flowSplitRow: {
+    flexDirection: 'row',
+    backgroundColor: colors.background,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  flowSplitItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  flowIconBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  flowSplitLabel: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    fontWeight: FontWeight.medium,
+  },
+  flowSplitValue: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.bold,
+    marginTop: 1,
+  },
+  flowSplitDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: colors.border,
+    marginHorizontal: Spacing.xs,
+  },
+  ratioSection: {
+    marginTop: Spacing.md,
+  },
   ratioBarTrack: {
     flexDirection: 'row',
-    height: 10,
-    borderRadius: 5,
+    height: 6,
+    borderRadius: 3,
     overflow: 'hidden',
-    marginBottom: Spacing.md,
+    backgroundColor: colors.borderLight,
   },
   ratioBarIncome: {
     backgroundColor: colors.income,
@@ -581,29 +753,15 @@ const styles = StyleSheet.create({
   ratioBarExpense: {
     backgroundColor: colors.expense,
   },
-  ratioLabelsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  ratioLabelItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  ratioIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  ratioLabelText: {
-    fontSize: FontSize.xs,
-    color: colors.textSecondary,
+  sectionBudgetProgress: {
+    marginHorizontal: Spacing.xl,
+    marginBottom: Spacing.base,
   },
   highlightsRow: {
     flexDirection: 'row',
     paddingHorizontal: Spacing.xl,
     gap: Spacing.md,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.base,
   },
   highlightCard: {
     flex: 1,
@@ -617,50 +775,56 @@ const styles = StyleSheet.create({
   highlightHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
     marginBottom: 4,
   },
   highlightTitle: {
-    fontSize: FontSize['2xs'],
+    fontSize: 10,
     color: colors.textMuted,
     fontWeight: FontWeight.bold,
     textTransform: 'uppercase',
-    letterSpacing: 0.4,
+    letterSpacing: 0.5,
   },
   highlightValue: {
-    fontSize: FontSize.md,
+    fontSize: FontSize.sm,
     fontWeight: FontWeight.bold,
     color: colors.textPrimary,
   },
   highlightSub: {
-    fontSize: FontSize['2xs'],
+    fontSize: 11,
     color: colors.textSecondary,
     marginTop: 2,
+    fontWeight: FontWeight.medium,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: Spacing.xl,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.md,
+    marginTop: Spacing.xs,
   },
   sectionTitle: {
     fontSize: FontSize.md,
     fontWeight: FontWeight.bold,
     color: colors.textPrimary,
+    letterSpacing: -0.2,
   },
   sectionCount: {
     fontSize: FontSize.xs,
     color: colors.textMuted,
+    marginTop: 1,
   },
   setBudgetBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     backgroundColor: colors.primaryLight,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
     borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(107, 30, 43, 0.12)',
   },
   setBudgetBtnText: {
     fontSize: FontSize.xs,
@@ -675,7 +839,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.card,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.xl,
     padding: Spacing.md,
     borderWidth: 1,
     borderColor: colors.borderLight,
@@ -745,6 +909,6 @@ const styles = StyleSheet.create({
   },
   emptyWrap: {
     paddingHorizontal: Spacing.xl,
+    marginTop: Spacing.sm,
   },
 });
-

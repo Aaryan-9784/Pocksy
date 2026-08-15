@@ -1,10 +1,10 @@
 /**
  * Pocksy Tab Navigation Layout
- * Premium bottom bar with sleek gradient Add action button, Ionicons, and responsive safe area handling
+ * Premium bottom bar with spacious label rendering, perfectly centered top/bottom margins, and elevated middle Add button
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,33 +13,6 @@ import * as Haptics from 'expo-haptics';
 import { Colors, FontSize, FontWeight, Shadows } from '@/constants/theme';
 
 const colors = Colors.light;
-
-interface TabIconProps {
-  iconFocused: keyof typeof Ionicons.glyphMap;
-  iconOutline: keyof typeof Ionicons.glyphMap;
-  label: string;
-  focused: boolean;
-}
-
-function TabIcon({ iconFocused, iconOutline, label, focused }: TabIconProps) {
-  return (
-    <View style={tabStyles.iconContainer}>
-      <Ionicons
-        name={focused ? iconFocused : iconOutline}
-        size={23}
-        color={focused ? colors.primary : colors.textMuted}
-      />
-      <Text
-        style={[
-          tabStyles.label,
-          focused ? tabStyles.labelFocused : tabStyles.labelInactive,
-        ]}
-      >
-        {label}
-      </Text>
-    </View>
-  );
-}
 
 function CustomAddButton(props: any) {
   const handlePress = (e: any) => {
@@ -80,74 +53,98 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        tabBarShowLabel: true,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textMuted,
         tabBarStyle: {
           backgroundColor: colors.white,
           borderTopColor: colors.borderLight,
           borderTopWidth: 1,
-          height: 60 + bottomPadding,
+          height: 76 + (insets.bottom > 0 ? insets.bottom : 0),
           paddingTop: 6,
           paddingBottom: bottomPadding,
-          ...Shadows.sm,
+          ...Shadows.md,
         },
-        tabBarShowLabel: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textMuted,
+        tabBarItemStyle: {
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingVertical: 2,
+        },
+        tabBarIconStyle: {
+          marginBottom: 1,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: FontWeight.semibold,
+          marginTop: 1,
+          letterSpacing: -0.2,
+        },
       }}
     >
+      {/* 1: Home */}
       <Tabs.Screen
         name="index"
         options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon
-              iconFocused="home"
-              iconOutline="home-outline"
-              label="Home"
-              focused={focused}
+          tabBarLabel: 'Home',
+          tabBarIcon: ({ focused, color }) => (
+            <Ionicons
+              name={focused ? 'home' : 'home-outline'}
+              size={22}
+              color={color}
             />
           ),
         }}
       />
+
+      {/* 2: Activity */}
       <Tabs.Screen
         name="transactions"
         options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon
-              iconFocused="receipt"
-              iconOutline="receipt-outline"
-              label="Activity"
-              focused={focused}
+          tabBarLabel: 'Activity',
+          tabBarIcon: ({ focused, color }) => (
+            <Ionicons
+              name={focused ? 'receipt' : 'receipt-outline'}
+              size={22}
+              color={color}
             />
           ),
         }}
       />
+
+      {/* 3: Middle Add Button */}
       <Tabs.Screen
         name="add"
         options={{
+          tabBarLabel: () => null,
           tabBarButton: (props) => <CustomAddButton {...props} />,
         }}
       />
+
+      {/* 4: Insights */}
       <Tabs.Screen
         name="analytics"
         options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon
-              iconFocused="pie-chart"
-              iconOutline="pie-chart-outline"
-              label="Insights"
-              focused={focused}
+          tabBarLabel: 'Insights',
+          tabBarIcon: ({ focused, color }) => (
+            <Ionicons
+              name={focused ? 'pie-chart' : 'pie-chart-outline'}
+              size={22}
+              color={color}
             />
           ),
         }}
       />
+
+      {/* 5: Profile */}
       <Tabs.Screen
         name="profile"
         options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon
-              iconFocused="person"
-              iconOutline="person-outline"
-              label="Profile"
-              focused={focused}
+          tabBarLabel: 'Profile',
+          tabBarIcon: ({ focused, color }) => (
+            <Ionicons
+              name={focused ? 'person' : 'person-outline'}
+              size={22}
+              color={color}
             />
           ),
         }}
@@ -157,40 +154,22 @@ export default function TabLayout() {
 }
 
 const tabStyles = StyleSheet.create({
-  iconContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 2,
-    minWidth: 54,
-  },
-  label: {
-    fontSize: 11,
-    marginTop: 3,
-    letterSpacing: -0.2,
-  },
-  labelInactive: {
-    color: colors.textMuted,
-    fontWeight: FontWeight.medium,
-  },
-  labelFocused: {
-    color: colors.primary,
-    fontWeight: FontWeight.bold,
-  },
   addButtonContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'transparent',
-    top: -10,
+    top: -18,
+    zIndex: 10,
   },
   addButtonSquare: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
+    width: 52,
+    height: 52,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
+    borderWidth: 2.5,
+    borderColor: '#FFFFFF',
     ...Platform.select({
       ios: {
         shadowColor: '#4A121D',
@@ -202,7 +181,7 @@ const tabStyles = StyleSheet.create({
         elevation: 8,
       },
       web: {
-        boxShadow: '0px 6px 16px rgba(107, 30, 43, 0.35)',
+        boxShadow: '0px 6px 18px rgba(107, 30, 43, 0.38)',
       } as any,
       default: {
         shadowColor: '#4A121D',
@@ -213,6 +192,3 @@ const tabStyles = StyleSheet.create({
     }),
   },
 });
-
-
-
