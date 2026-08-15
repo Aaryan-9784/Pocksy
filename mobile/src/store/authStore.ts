@@ -100,10 +100,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await AsyncStorage.setItem(USER_KEY, JSON.stringify(user));
       set({ user });
     } catch (err: any) {
-      if (err?.statusCode === 401) {
-        // Token is truly expired or invalid
+      // Only logout on genuine 401 (token invalid/expired)
+      // Do NOT logout on network errors, timeouts, or server cold starts
+      const isAuthError = err?.statusCode === 401 || err?.statusCode === 403;
+      const isNetworkError =
+        !err?.statusCode ||
+        err?.message?.includes('Network request failed') ||
+        err?.message?.includes('Failed to fetch') ||
+        err?.message?.includes('timeout');
+
+      if (isAuthError && !isNetworkError) {
         await get().logout();
       }
+      // On network errors, silently keep user logged in with cached data
     }
   },
 
