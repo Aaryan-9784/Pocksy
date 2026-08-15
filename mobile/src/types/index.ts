@@ -15,6 +15,13 @@ export interface User {
   updatedAt: string;
 }
 
+export interface UpdateProfilePayload {
+  name?: string;
+  currency?: string;
+  monthlyBudget?: number;
+}
+
+
 // ─── Transactions ────────────────────────────────────────────────────────────
 
 export type TransactionType = 'income' | 'expense';

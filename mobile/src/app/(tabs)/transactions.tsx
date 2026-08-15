@@ -19,8 +19,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows } from '@/constants/theme';
-import { TransactionItem, EmptyState, LoadingState } from '@/components/ui';
+import { TransactionItem, EmptyState, LoadingState, TransactionDetailModal } from '@/components/ui';
 import { useTransactionStore } from '@/store/transactionStore';
+import { useDashboardStore } from '@/store/dashboardStore';
 import { formatAmount } from '@/constants/currency';
 import type { Transaction } from '@/types';
 
@@ -32,6 +33,7 @@ export default function TransactionsScreen() {
   const insets = useSafeAreaInsets();
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
   const {
     transactions,
@@ -43,6 +45,8 @@ export default function TransactionsScreen() {
     refresh,
     loadMore,
   } = useTransactionStore();
+
+  const refreshDashboard = useDashboardStore((s) => s.refresh);
 
   useEffect(() => {
     fetchTransactions(true);
@@ -91,6 +95,7 @@ export default function TransactionsScreen() {
           onPress: async () => {
             try {
               await deleteTransaction(id);
+              refreshDashboard();
             } catch {
               Alert.alert('Error', 'Failed to delete transaction');
             }
@@ -100,9 +105,20 @@ export default function TransactionsScreen() {
     );
   };
 
+  const handleModalUpdated = () => {
+    refresh();
+    refreshDashboard();
+  };
+
+  const handleModalDeleted = () => {
+    refresh();
+    refreshDashboard();
+  };
+
   const renderTransaction = ({ item }: { item: Transaction }) => (
     <TransactionItem
       transaction={item}
+      onPress={(tx) => setSelectedTransaction(tx)}
       onLongPress={() => handleDelete(item._id)}
     />
   );
@@ -223,9 +239,19 @@ export default function TransactionsScreen() {
           onEndReachedThreshold={0.3}
         />
       )}
+
+      {/* Transaction Detail & Edit Modal */}
+      <TransactionDetailModal
+        visible={!!selectedTransaction}
+        transaction={selectedTransaction}
+        onClose={() => setSelectedTransaction(null)}
+        onUpdated={handleModalUpdated}
+        onDeleted={handleModalDeleted}
+      />
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {

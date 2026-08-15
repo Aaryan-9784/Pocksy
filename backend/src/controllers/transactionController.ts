@@ -190,3 +190,43 @@ export async function deleteTransaction(
     next(error);
   }
 }
+
+/**
+ * GET /api/transactions/export
+ * Export user transactions as CSV
+ */
+export async function exportTransactions(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const transactions = await Transaction.find({ userId: req.user!._id })
+      .sort({ date: -1 })
+      .lean();
+
+    const csvRows: string[] = [
+      'Date,Type,Category,Description,Amount,Payment Method,Notes',
+    ];
+
+    for (const t of transactions) {
+      const dateStr = new Date(t.date).toISOString().split('T')[0];
+      const typeStr = t.type;
+      const categoryStr = `"${(t.category || '').replace(/"/g, '""')}"`;
+      const descStr = `"${(t.description || '').replace(/"/g, '""')}"`;
+      const amountStr = t.amount.toString();
+      const methodStr = `"${(t.paymentMethod || '').replace(/"/g, '""')}"`;
+      const notesStr = `"${(t.notes || '').replace(/"/g, '""')}"`;
+
+      csvRows.push([dateStr, typeStr, categoryStr, descStr, amountStr, methodStr, notesStr].join(','));
+    }
+
+    const csvContent = csvRows.join('\n');
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="pocksy_transactions.csv"');
+    res.status(200).send(csvContent);
+  } catch (error) {
+    next(error);
+  }
+}
+

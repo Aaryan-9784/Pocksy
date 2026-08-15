@@ -1,8 +1,3 @@
-/**
- * Pocksy Profile & Settings Screen
- * User account details, preferences, and data management
- */
-
 import React, { useState } from 'react';
 import {
   View,
@@ -12,6 +7,9 @@ import {
   Alert,
   ScrollView,
   Platform,
+  Modal,
+  TextInput,
+  Share,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,9 +17,14 @@ import * as Haptics from 'expo-haptics';
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows } from '@/constants/theme';
 import { Avatar, PocksyButton } from '@/components/ui';
 import { useAuthStore } from '@/store/authStore';
+import { useDashboardStore } from '@/store/dashboardStore';
+import { useTransactionStore } from '@/store/transactionStore';
 import { CURRENCIES, formatAmount } from '@/constants/currency';
+import { budgetService } from '@/services/budgetService';
+import { transactionService } from '@/services/transactionService';
 
 const colors = Colors.light;
+
 
 interface MenuItemProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -74,12 +77,122 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const logout = useAuthStore((s) => s.logout);
   const user = useAuthStore((s) => s.user);
+  const updateProfile = useAuthStore((s) => s.updateProfile);
+  const fetchUser = useAuthStore((s) => s.fetchUser);
+  const refreshDashboard = useDashboardStore((s) => s.refresh);
+  const refreshTransactions = useTransactionStore((s) => s.refresh);
+
+  // Modals state
+  const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
+  const [budgetModalVisible, setBudgetModalVisible] = useState(false);
+  const [budgetInput, setBudgetInput] = useState('');
+  const [savingBudget, setSavingBudget] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   const currencyCode = user?.currency || 'INR';
   const currencyConfig = CURRENCIES[currencyCode];
   const currencyDisplay = currencyConfig
     ? `${currencyCode} (${currencyConfig.symbol})`
     : currencyCode;
+
+  const handleCurrencySelect = async (code: string) => {
+    try {
+      if (Platform.OS !== 'web') {
+        try {
+          Haptics.selectionAsync();
+        } catch {}
+      }
+      await updateProfile({ currency: code });
+      setCurrencyModalVisible(false);
+      refreshDashboard();
+      Alert.alert('Currency Updated', `Active currency set to ${code}.`);
+    } catch (err: any) {
+      Alert.alert('Update Failed', err.message || 'Could not update currency.');
+    }
+  };
+
+  const handleOpenBudgetModal = () => {
+    setBudgetInput(user?.monthlyBudget ? user.monthlyBudget.toString() : '');
+    setBudgetModalVisible(true);
+  };
+
+  const handleSaveBudget = async () => {
+    const num = parseFloat(budgetInput);
+    if (isNaN(num) || num < 0) {
+      Alert.alert('Invalid Budget', 'Please enter a positive budget amount.');
+      return;
+    }
+
+    setSavingBudget(true);
+    try {
+      if (Platform.OS !== 'web') {
+        try {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } catch {}
+      }
+      await updateProfile({ monthlyBudget: num });
+      const now = new Date();
+      await budgetService.set({
+        month: now.getMonth() + 1,
+        year: now.getFullYear(),
+        amount: num,
+      });
+
+      setBudgetModalVisible(false);
+      refreshDashboard();
+      Alert.alert('Budget Saved ✨', `Monthly budget set to ${formatAmount(num)}.`);
+    } catch (err: any) {
+      Alert.alert('Budget Update Failed', err.message || 'Could not update budget.');
+    } finally {
+      setSavingBudget(false);
+    }
+  };
+
+  const handleExportData = async () => {
+    try {
+      if (Platform.OS !== 'web') {
+        try {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        } catch {}
+      }
+      const csv = await transactionService.exportCsv();
+      if (Platform.OS === 'web') {
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `pocksy_transactions_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        Alert.alert('Export Complete', 'Your CSV file has been downloaded.');
+      } else {
+        await Share.share({
+          message: csv,
+          title: 'Pocksy Transactions Export',
+        });
+      }
+    } catch (err: any) {
+      Alert.alert('Export Failed', err.message || 'Could not export transaction data.');
+    }
+  };
+
+  const handleCloudSync = async () => {
+    setSyncing(true);
+    try {
+      if (Platform.OS !== 'web') {
+        try {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        } catch {}
+      }
+      await Promise.all([fetchUser(), refreshDashboard(), refreshTransactions()]);
+      Alert.alert('Sync Complete ☁️', 'All your transactions and balances are up to date.');
+    } catch (err: any) {
+      Alert.alert('Sync Error', 'Could not sync data right now.');
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const handleLogout = () => {
     if (Platform.OS !== 'web') {
@@ -100,14 +213,6 @@ export default function ProfileScreen() {
           },
         },
       ]
-    );
-  };
-
-  const handleExportData = () => {
-    Alert.alert(
-      'Export Financial Data',
-      'Your transactions will be compiled into CSV format and prepared for download.',
-      [{ text: 'Export Now', onPress: () => Alert.alert('Success', 'CSV exported successfully.') }, { text: 'Cancel', style: 'cancel' }]
     );
   };
 
@@ -158,6 +263,7 @@ export default function ProfileScreen() {
           iconBg="#DCFCE7"
           label="Currency"
           value={currencyDisplay}
+          onPress={() => setCurrencyModalVisible(true)}
         />
         <MenuItem
           icon="pie-chart-outline"
@@ -165,6 +271,7 @@ export default function ProfileScreen() {
           iconBg={colors.primaryLight}
           label="Monthly Budget"
           value={user?.monthlyBudget ? formatAmount(user.monthlyBudget) : 'Not configured'}
+          onPress={handleOpenBudgetModal}
         />
         <MenuItem
           icon="notifications-outline"
@@ -188,18 +295,19 @@ export default function ProfileScreen() {
           onPress={handleExportData}
         />
         <MenuItem
+          icon="cloud-done-outline"
+          iconColor="#059669"
+          iconBg="#ECFDF5"
+          label="Cloud Sync"
+          value={syncing ? 'Syncing...' : 'Tap to sync'}
+          onPress={handleCloudSync}
+        />
+        <MenuItem
           icon="shield-checkmark-outline"
           iconColor="#0891B2"
           iconBg="#CFFAFE"
           label="Biometric App Lock"
           value="Off"
-        />
-        <MenuItem
-          icon="cloud-done-outline"
-          iconColor="#059669"
-          iconBg="#ECFDF5"
-          label="Cloud Sync Status"
-          value="Up to date"
           isLast
         />
       </View>
@@ -212,14 +320,14 @@ export default function ProfileScreen() {
           iconColor="#EA580C"
           iconBg="#FFEDD5"
           label="Help & FAQ"
-          onPress={() => Alert.alert('Pocksy Support', 'Visit https://github.com/Aaryan-9784/Pocksy for help.')}
+          onPress={() => Alert.alert('Pocksy Support', 'Visit https://github.com/Aaryan-9784/Pocksy for documentation & support.')}
         />
         <MenuItem
           icon="lock-closed-outline"
           iconColor="#64748B"
           iconBg="#F1F5F9"
           label="Privacy Policy"
-          onPress={() => Alert.alert('Privacy Policy', 'Your financial data is encrypted and private.')}
+          onPress={() => Alert.alert('Privacy Policy', 'Your financial records are encrypted and strictly private.')}
         />
         <MenuItem
           icon="information-circle-outline"
@@ -240,9 +348,88 @@ export default function ProfileScreen() {
           icon={<Ionicons name="log-out-outline" size={18} color={colors.primary} />}
         />
       </View>
+
+      {/* Currency Selector Modal */}
+      <Modal visible={currencyModalVisible} transparent animationType="slide" onRequestClose={() => setCurrencyModalVisible(false)}>
+        <View style={modalStyles.overlay}>
+          <View style={modalStyles.container}>
+            <View style={modalStyles.header}>
+              <Text style={modalStyles.title}>Select Currency</Text>
+              <TouchableOpacity onPress={() => setCurrencyModalVisible(false)} style={modalStyles.closeBtn}>
+                <Ionicons name="close" size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ maxHeight: 380 }}>
+              {Object.entries(CURRENCIES).map(([code, config]) => {
+                const isSelected = currencyCode === code;
+                return (
+                  <TouchableOpacity
+                    key={code}
+                    style={[modalStyles.currencyRow, isSelected && modalStyles.currencyRowActive]}
+                    onPress={() => handleCurrencySelect(code)}
+                  >
+                    <View style={modalStyles.currencySymbolBox}>
+                      <Text style={modalStyles.currencySymbolText}>{config.symbol}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={modalStyles.currencyCodeText}>{code} — {config.name}</Text>
+                      <Text style={modalStyles.currencySubText}>Symbol: {config.symbol}</Text>
+                    </View>
+                    {isSelected && (
+                      <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Budget Goal Editor Modal */}
+      <Modal visible={budgetModalVisible} transparent animationType="slide" onRequestClose={() => setBudgetModalVisible(false)}>
+        <View style={modalStyles.overlay}>
+          <View style={modalStyles.container}>
+            <View style={modalStyles.header}>
+              <Text style={modalStyles.title}>Set Monthly Budget Goal</Text>
+              <TouchableOpacity onPress={() => setBudgetModalVisible(false)} style={modalStyles.closeBtn}>
+                <Ionicons name="close" size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <View style={{ padding: Spacing.xl }}>
+              <Text style={modalStyles.budgetHelper}>
+                Set your maximum target spending for the month. We'll automatically calculate remaining limits and alert you before you exceed.
+              </Text>
+              <TextInput
+                style={modalStyles.budgetInput}
+                placeholder="e.g. 50000"
+                placeholderTextColor={colors.textMuted}
+                value={budgetInput}
+                onChangeText={setBudgetInput}
+                keyboardType="numeric"
+                autoFocus
+              />
+              <View style={{ marginTop: Spacing.lg, gap: Spacing.sm }}>
+                <PocksyButton
+                  title="Save Budget Target"
+                  onPress={handleSaveBudget}
+                  loading={savingBudget}
+                  icon={<Ionicons name="checkmark-circle-outline" size={18} color="#FFFFFF" />}
+                />
+                <PocksyButton
+                  title="Cancel"
+                  onPress={() => setBudgetModalVisible(false)}
+                  variant="ghost"
+                />
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
@@ -383,4 +570,99 @@ const menuStyles = StyleSheet.create({
     fontWeight: FontWeight.medium,
   },
 });
+
+const modalStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  container: {
+    backgroundColor: colors.card,
+    borderTopLeftRadius: BorderRadius['2xl'],
+    borderTopRightRadius: BorderRadius['2xl'],
+    paddingBottom: Spacing['3xl'],
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    ...Shadows.lg,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+  title: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.bold,
+    color: colors.textPrimary,
+  },
+  closeBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.borderLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  currencyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+  currencyRowActive: {
+    backgroundColor: colors.primaryLight,
+  },
+  currencySymbolBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.md,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  currencySymbolText: {
+    fontSize: FontSize.lg,
+    fontWeight: FontWeight.bold,
+    color: colors.primary,
+  },
+  currencyCodeText: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.semibold,
+    color: colors.textPrimary,
+  },
+  currencySubText: {
+    fontSize: FontSize['2xs'],
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  budgetHelper: {
+    fontSize: FontSize.xs,
+    color: colors.textSecondary,
+    lineHeight: 18,
+    marginBottom: Spacing.md,
+  },
+  budgetInput: {
+    backgroundColor: colors.background,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.md,
+    fontSize: FontSize['2xl'],
+    fontWeight: FontWeight.bold,
+    color: colors.textPrimary,
+    textAlign: 'center',
+  },
+});
+
 

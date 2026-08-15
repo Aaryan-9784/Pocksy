@@ -50,6 +50,7 @@ interface AuthState {
   login: (payload: LoginPayload) => Promise<void>;
   register: (payload: RegisterPayload) => Promise<void>;
   fetchUser: () => Promise<void>;
+  updateProfile: (payload: { name?: string; currency?: string; monthlyBudget?: number }) => Promise<void>;
   setOnboardingComplete: () => Promise<void>;
   logout: () => Promise<void>;
   loadPersistedState: () => Promise<void>;
@@ -97,6 +98,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await get().logout();
     }
   },
+
+  updateProfile: async (payload) => {
+    try {
+      const updatedUser = await authService.updateProfile(payload);
+      set({ user: updatedUser });
+    } catch (err: any) {
+      throw err;
+    }
+  },
+
 
   setOnboardingComplete: async () => {
     await AsyncStorage.setItem(ONBOARDING_KEY, 'true');

@@ -12,9 +12,14 @@ export const budgetService = {
     return response.data!;
   },
 
+  async set(payload: { month: number; year: number; amount: number }): Promise<Budget> {
+    return this.setBudget(payload.month, payload.year, payload.amount);
+  },
+
   async getBudget(month?: number, year?: number): Promise<{ budget: Budget }> {
     const params: Record<string, string | number | undefined> = { month, year };
     const response = await api.get<{ budget: Budget }>('/budget', params);
     return response.data!;
   },
 };
+

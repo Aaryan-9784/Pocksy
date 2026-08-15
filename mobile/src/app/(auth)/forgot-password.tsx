@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows } from '@/constants/theme';
 import { PocksyButton, PocksyInput } from '@/components/ui';
+import { authService } from '@/services/authService';
 
 const colors = Colors.light;
 
@@ -48,11 +49,17 @@ export default function ForgotPasswordScreen() {
     if (!validate()) return;
 
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      await authService.forgotPassword(email.trim().toLowerCase());
       setSent(true);
-    }, 800);
+    } catch {
+      // Even on error, show sent screen for privacy/security
+      setSent(true);
+    } finally {
+      setLoading(false);
+    }
   };
+
 
   return (
     <KeyboardAvoidingView

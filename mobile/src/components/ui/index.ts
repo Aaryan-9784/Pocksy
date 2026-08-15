@@ -16,3 +16,5 @@ export { ErrorState } from './ErrorState';
 export { AmountInput } from './AmountInput';
 export { Avatar } from './Avatar';
 export { BudgetProgress } from './BudgetProgress';
+export { TransactionDetailModal } from './TransactionDetailModal';
+

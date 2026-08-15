@@ -3,7 +3,7 @@
  * Modern input flow with amount presets, vector categories, and tactile haptics
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,7 +16,7 @@ import {
   TextInput,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows } from '@/constants/theme';
@@ -24,6 +24,8 @@ import { PocksyButton, PocksyInput, CategoryIcon } from '@/components/ui';
 import { EXPENSE_CATEGORIES, INCOME_SOURCES, PAYMENT_METHODS } from '@/constants/categories';
 import { useTransactionStore } from '@/store/transactionStore';
 import { useDashboardStore } from '@/store/dashboardStore';
+import { useAuthStore } from '@/store/authStore';
+import { CURRENCIES } from '@/constants/currency';
 import type { TransactionType } from '@/types';
 
 const colors = Colors.light;
@@ -33,10 +35,24 @@ const PRESET_AMOUNTS = [100, 200, 500, 1000, 2000, 5000];
 export default function AddScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const params = useLocalSearchParams<{ type?: string }>();
   const addTransaction = useTransactionStore((s) => s.addTransaction);
+  const refreshTransactions = useTransactionStore((s) => s.refresh);
   const refreshDashboard = useDashboardStore((s) => s.refresh);
+  const user = useAuthStore((s) => s.user);
 
-  const [type, setType] = useState<TransactionType>('expense');
+  const currencySymbol = CURRENCIES[user?.currency || 'INR']?.symbol || '₹';
+
+  const [type, setType] = useState<TransactionType>(
+    params.type === 'income' ? 'income' : 'expense'
+  );
+
+  useEffect(() => {
+    if (params.type === 'income' || params.type === 'expense') {
+      setType(params.type);
+    }
+  }, [params.type]);
+
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
@@ -44,6 +60,7 @@ export default function AddScreen() {
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
 
   const categories = type === 'expense' ? EXPENSE_CATEGORIES : INCOME_SOURCES;
 
@@ -119,7 +136,8 @@ export default function AddScreen() {
         notes: notes.trim() || undefined,
       });
 
-      // Refresh dashboard data
+      // Refresh both transaction and dashboard data
+      refreshTransactions();
       refreshDashboard();
 
       if (Platform.OS !== 'web') {
@@ -130,7 +148,7 @@ export default function AddScreen() {
 
       Alert.alert(
         'Transaction Added ✨',
-        `${type === 'income' ? 'Income' : 'Expense'} of ₹${amount} logged successfully.`,
+        `${type === 'income' ? 'Income' : 'Expense'} of ${currencySymbol}${amount} logged successfully.`,
         [
           {
             text: 'Done',
@@ -148,6 +166,7 @@ export default function AddScreen() {
           },
         ]
       );
+
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Failed to add transaction');
     } finally {
@@ -225,7 +244,7 @@ export default function AddScreen() {
         <View style={styles.amountCard}>
           <Text style={styles.amountCardLabel}>ENTER AMOUNT</Text>
           <View style={styles.amountInputRow}>
-            <Text style={styles.currencySymbol}>₹</Text>
+            <Text style={styles.currencySymbol}>{currencySymbol}</Text>
             <TextInput
               style={styles.amountInput}
               placeholder="0"
@@ -253,11 +272,12 @@ export default function AddScreen() {
                 onPress={() => handlePresetSelect(val)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.presetChipText}>+₹{val}</Text>
+                <Text style={styles.presetChipText}>+{currencySymbol}{val}</Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
+
 
         {/* Category Grid */}
         <View style={styles.section}>

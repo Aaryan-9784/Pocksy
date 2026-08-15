@@ -9,6 +9,7 @@ import {
   getTransaction,
   updateTransaction,
   deleteTransaction,
+  exportTransactions,
 } from '../controllers/transactionController';
 import { protect } from '../middleware/auth';
 import {
@@ -23,8 +24,10 @@ router.use(protect);
 
 router.post('/', validateCreateTransaction, createTransaction);
 router.get('/', getTransactions);
+router.get('/export', exportTransactions);
 router.get('/:id', getTransaction);
 router.put('/:id', validateUpdateTransaction, updateTransaction);
 router.delete('/:id', deleteTransaction);
 
 export default router;
+

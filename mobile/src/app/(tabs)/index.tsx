@@ -3,7 +3,7 @@
  * High-end financial dashboard with real data, quick actions, and responsive layout
  */
 
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -26,9 +26,11 @@ import {
   TransactionItem,
   LoadingState,
   Avatar,
+  TransactionDetailModal,
 } from '@/components/ui';
 import { useAuthStore } from '@/store/authStore';
 import { useDashboardStore } from '@/store/dashboardStore';
+import type { Transaction } from '@/types';
 
 const colors = Colors.light;
 
@@ -37,6 +39,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const { data, isLoading, fetchDashboard, refresh } = useDashboardStore();
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
   useEffect(() => {
     fetchDashboard();
@@ -118,7 +121,7 @@ export default function HomeScreen() {
       <View style={styles.quickActionsRow}>
         <TouchableOpacity
           style={styles.actionButton}
-          onPress={() => navigateTo('/(tabs)/add')}
+          onPress={() => router.push({ pathname: '/(tabs)/add', params: { type: 'expense' } })}
           activeOpacity={0.75}
         >
           <View style={[styles.actionIconCircle, { backgroundColor: colors.dangerLight }]}>
@@ -129,7 +132,7 @@ export default function HomeScreen() {
 
         <TouchableOpacity
           style={styles.actionButton}
-          onPress={() => navigateTo('/(tabs)/add')}
+          onPress={() => router.push({ pathname: '/(tabs)/add', params: { type: 'income' } })}
           activeOpacity={0.75}
         >
           <View style={[styles.actionIconCircle, { backgroundColor: colors.successLight }]}>
@@ -162,11 +165,11 @@ export default function HomeScreen() {
       </View>
 
       {/* Budget Progress Widget */}
-      {(data?.monthlyBudget || 0) > 0 && (
+      {(data?.monthlyBudget || user?.monthlyBudget || 0) > 0 && (
         <View style={styles.section}>
           <BudgetProgress
             spent={data?.budgetSpent || 0}
-            total={data?.monthlyBudget || 0}
+            total={data?.monthlyBudget || user?.monthlyBudget || 0}
           />
         </View>
       )}
@@ -186,7 +189,7 @@ export default function HomeScreen() {
             <TransactionItem
               key={t._id}
               transaction={t}
-              onPress={() => navigateTo('/(tabs)/transactions')}
+              onPress={(tx) => setSelectedTransaction(tx)}
             />
           ))}
         </View>
@@ -201,9 +204,19 @@ export default function HomeScreen() {
           />
         </View>
       )}
+
+      {/* Transaction Detail & Edit Modal */}
+      <TransactionDetailModal
+        visible={!!selectedTransaction}
+        transaction={selectedTransaction}
+        onClose={() => setSelectedTransaction(null)}
+        onUpdated={onRefresh}
+        onDeleted={onRefresh}
+      />
     </ScrollView>
   );
 }
+
 
 function getGreeting(): string {
   const hour = new Date().getHours();

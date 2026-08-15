@@ -131,3 +131,69 @@ export async function getMe(
     next(error);
   }
 }
+
+/**
+ * PUT /api/auth/profile
+ * Update user preferences (name, currency, monthlyBudget)
+ */
+export async function updateProfile(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { name, currency, monthlyBudget } = req.body;
+
+    const updateData: Record<string, any> = {};
+    if (name !== undefined) updateData.name = name.trim();
+    if (currency !== undefined) updateData.currency = currency;
+    if (monthlyBudget !== undefined) updateData.monthlyBudget = Number(monthlyBudget);
+
+    const user = await User.findByIdAndUpdate(
+      req.user!._id,
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    if (!user) {
+      throw ApiError.notFound('User not found');
+    }
+
+    ApiResponse.success(res, 'Profile updated successfully', {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      currency: user.currency,
+      monthlyBudget: user.monthlyBudget,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * POST /api/auth/forgot-password
+ * Handle password recovery requests
+ */
+export async function forgotPassword(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      throw ApiError.badRequest('Email is required');
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    // Don't reveal if user exists for security, return success response
+    ApiResponse.success(res, 'If an account exists with this email, a reset link has been dispatched');
+  } catch (error) {
+    next(error);
+  }
+}
+

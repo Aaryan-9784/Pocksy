@@ -59,4 +59,26 @@ export const transactionService = {
   async delete(id: string): Promise<void> {
     await api.delete(`/transactions/${id}`);
   },
+
+  async exportCsv(): Promise<string> {
+    const data = await this.list({ limit: 1000 });
+    const rows = [
+      ['Date', 'Type', 'Category', 'Description', 'Amount', 'Payment Method', 'Notes'].join(','),
+    ];
+
+    for (const t of data.transactions) {
+      const dateStr = new Date(t.date).toLocaleDateString();
+      const typeStr = t.type.toUpperCase();
+      const categoryStr = `"${(t.category || '').replace(/"/g, '""')}"`;
+      const descStr = `"${(t.description || '').replace(/"/g, '""')}"`;
+      const amountStr = t.amount.toString();
+      const methodStr = `"${(t.paymentMethod || 'Other').replace(/"/g, '""')}"`;
+      const notesStr = `"${(t.notes || '').replace(/"/g, '""')}"`;
+
+      rows.push([dateStr, typeStr, categoryStr, descStr, amountStr, methodStr, notesStr].join(','));
+    }
+
+    return rows.join('\n');
+  },
 };
+
