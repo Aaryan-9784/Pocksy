@@ -70,7 +70,14 @@ export function TransactionItem({ transaction, onPress, onLongPress }: Transacti
         <Text
           style={[
             styles.amount,
-            { color: isExpense ? colors.expense : colors.income },
+            {
+              color:
+                transaction.type === 'expense'
+                  ? colors.expense
+                  : transaction.type === 'income'
+                  ? colors.income
+                  : colors.primary,
+            },
           ]}
         >
           {formatSignedAmount(transaction.amount, transaction.type)}

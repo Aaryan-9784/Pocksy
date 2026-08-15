@@ -1,15 +1,12 @@
-/**
- * Pocksy Onboarding Screen — Premium swipeable onboarding experience
- */
-
 import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  Dimensions,
+  useWindowDimensions,
   FlatList,
   Platform,
+  TouchableOpacity,
   type NativeSyntheticEvent,
   type NativeScrollEvent,
 } from 'react-native';
@@ -22,7 +19,6 @@ import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows } from '@/
 import { PocksyButton } from '@/components/ui';
 import { useAuthStore } from '@/store/authStore';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const colors = Colors.light;
 
 interface OnboardingSlide {
@@ -72,6 +68,9 @@ const SLIDES: OnboardingSlide[] = [
 export default function OnboardingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const slideWidth = Math.min(width, 500);
+
   const flatListRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const setOnboardingComplete = useAuthStore((s) => s.setOnboardingComplete);
@@ -79,7 +78,7 @@ export default function OnboardingScreen() {
   const isLastSlide = currentIndex === SLIDES.length - 1;
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const index = Math.round(event.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+    const index = Math.round(event.nativeEvent.contentOffset.x / slideWidth);
     if (index !== currentIndex && index >= 0 && index < SLIDES.length) {
       if (Platform.OS !== 'web') {
         try {
@@ -114,7 +113,7 @@ export default function OnboardingScreen() {
   };
 
   const renderSlide = ({ item }: { item: OnboardingSlide }) => (
-    <View style={[styles.slide, { width: SCREEN_WIDTH }]}>
+    <View style={[styles.slide, { width: slideWidth }]}>
       {/* Decorative background glow badge */}
       <View style={styles.illustrationContainer}>
         <View style={[styles.decorCircleOuter, { borderColor: item.accent + '25' }]}>
@@ -135,56 +134,89 @@ export default function OnboardingScreen() {
   );
 
   return (
-    <View style={[styles.container, { paddingTop: Math.max(insets.top, 20), paddingBottom: Math.max(insets.bottom, 16) }]}>
-      {/* Skip button */}
-      {!isLastSlide && (
-        <View style={styles.skipContainer}>
-          <PocksyButton
-            title="Skip"
-            onPress={handleSkip}
-            variant="ghost"
-            size="sm"
-            fullWidth={false}
-          />
-        </View>
-      )}
-
-      {/* Slides */}
-      <FlatList
-        ref={flatListRef}
-        data={SLIDES}
-        renderItem={renderSlide}
-        keyExtractor={(item) => item.id}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-        bounces={false}
-      />
-
-      {/* Bottom section */}
-      <View style={styles.bottomSection}>
-        {/* Pagination dots */}
-        <View style={styles.pagination}>
-          {SLIDES.map((_, index) => (
-            <View
-              key={index}
-              style={[
-                styles.dot,
-                index === currentIndex ? styles.dotActive : styles.dotInactive,
-              ]}
+    <View style={styles.wrapper}>
+      <View
+        style={[
+          styles.container,
+          {
+            width: slideWidth,
+            paddingTop: Math.max(insets.top, 20),
+            paddingBottom: Math.max(insets.bottom, 16),
+          },
+        ]}
+      >
+        {/* Skip button */}
+        {!isLastSlide && (
+          <View style={styles.skipContainer}>
+            <PocksyButton
+              title="Skip"
+              onPress={handleSkip}
+              variant="ghost"
+              size="sm"
+              fullWidth={false}
             />
-          ))}
-        </View>
+          </View>
+        )}
 
-        {/* CTA Button */}
-        <View style={styles.buttonContainer}>
-          <PocksyButton
-            title={isLastSlide ? 'Get Started' : 'Continue'}
-            onPress={handleNext}
-            icon={isLastSlide ? <Ionicons name="sparkles" size={18} color="#FFFFFF" /> : <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />}
-          />
+        {/* Slides */}
+        <FlatList
+          ref={flatListRef}
+          data={SLIDES}
+          renderItem={renderSlide}
+          keyExtractor={(item) => item.id}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          bounces={false}
+          getItemLayout={(_, index) => ({
+            length: slideWidth,
+            offset: slideWidth * index,
+            index,
+          })}
+        />
+
+        {/* Bottom section */}
+        <View style={styles.bottomSection}>
+          {/* Pagination dots */}
+          <View style={styles.pagination}>
+            {SLIDES.map((_, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.dot,
+                  index === currentIndex ? styles.dotActive : styles.dotInactive,
+                ]}
+              />
+            ))}
+          </View>
+
+          {/* CTA Button */}
+          <View style={styles.buttonContainer}>
+            <PocksyButton
+              title={isLastSlide ? 'Get Started' : 'Continue'}
+              onPress={handleNext}
+              icon={
+                isLastSlide ? (
+                  <Ionicons name="sparkles" size={18} color="#FFFFFF" />
+                ) : (
+                  <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+                )
+              }
+            />
+          </View>
+
+          {/* Quick Sign In link */}
+          <TouchableOpacity
+            style={styles.signInLinkWrap}
+            onPress={handleSkip}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.signInLinkText}>
+              Already have an account? <Text style={styles.signInLinkHighlight}>Sign In</Text>
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
     </View>
@@ -192,9 +224,17 @@ export default function OnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
+  wrapper: {
+    flex: 1,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   container: {
     flex: 1,
     backgroundColor: colors.background,
+    maxWidth: 500,
+    width: '100%',
   },
   skipContainer: {
     position: 'absolute',
@@ -270,6 +310,20 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     width: '100%',
+  },
+  signInLinkWrap: {
+    marginTop: Spacing.md,
+    alignItems: 'center',
+    paddingVertical: Spacing.xs,
+  },
+  signInLinkText: {
+    fontSize: FontSize.xs,
+    color: colors.textSecondary,
+    fontWeight: FontWeight.medium,
+  },
+  signInLinkHighlight: {
+    color: colors.primary,
+    fontWeight: FontWeight.bold,
   },
 });
 

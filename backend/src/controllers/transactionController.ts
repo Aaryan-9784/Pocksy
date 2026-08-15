@@ -1,10 +1,6 @@
-/**
- * Transaction Controller
- * CRUD operations for income and expense transactions
- */
-
 import { Request, Response, NextFunction } from 'express';
 import { Transaction } from '../models/Transaction';
+import { Account } from '../models/Account';
 import { ApiResponse } from '../utils/ApiResponse';
 import { ApiError } from '../utils/ApiError';
 
@@ -18,7 +14,7 @@ export async function createTransaction(
   next: NextFunction
 ): Promise<void> {
   try {
-    const { type, amount, category, description, paymentMethod, date, notes } = req.body;
+    const { type, amount, category, description, paymentMethod, accountId, toAccountId, date, notes } = req.body;
 
     const transaction = await Transaction.create({
       userId: req.user!._id,
@@ -27,9 +23,20 @@ export async function createTransaction(
       category,
       description,
       paymentMethod,
-      date: new Date(date),
+      accountId,
+      toAccountId,
+      date: date ? new Date(date) : new Date(),
       notes,
     });
+
+    // Update account balance if accountId is provided
+    if (accountId) {
+      if (type === 'income') {
+        await Account.findByIdAndUpdate(accountId, { $inc: { balance: amount } });
+      } else if (type === 'expense') {
+        await Account.findByIdAndUpdate(accountId, { $inc: { balance: -amount } });
+      }
+    }
 
     ApiResponse.created(res, 'Transaction created successfully', transaction);
   } catch (error) {
@@ -183,6 +190,15 @@ export async function deleteTransaction(
 
     if (!transaction) {
       throw ApiError.notFound('Transaction not found');
+    }
+
+    // Revert account balance
+    if (transaction.accountId) {
+      if (transaction.type === 'income') {
+        await Account.findByIdAndUpdate(transaction.accountId, { $inc: { balance: -transaction.amount } });
+      } else if (transaction.type === 'expense') {
+        await Account.findByIdAndUpdate(transaction.accountId, { $inc: { balance: transaction.amount } });
+      }
     }
 
     ApiResponse.success(res, 'Transaction deleted');

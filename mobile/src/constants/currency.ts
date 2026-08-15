@@ -101,11 +101,11 @@ export function formatAmount(
 }
 
 /**
- * Format amount with sign indicator (+ for income, - for expense)
+ * Format amount with sign indicator (+ for income, - for expense, ⇄ for transfer)
  */
 export function formatSignedAmount(
   amount: number,
-  type: 'income' | 'expense',
+  type: 'income' | 'expense' | 'transfer',
   currency?: CurrencyConfig
 ): string {
   const activeCurrency = getActiveCurrencyConfig(currency);
@@ -113,7 +113,7 @@ export function formatSignedAmount(
     minimumFractionDigits: 0,
     maximumFractionDigits: activeCurrency.decimalPlaces,
   });
-  const sign = type === 'income' ? '+' : '-';
+  const sign = type === 'income' ? '+' : type === 'expense' ? '-' : '⇄ ';
   return `${sign}${activeCurrency.symbol}${formatted}`;
 }
 

@@ -13,6 +13,10 @@ import authRoutes from './routes/authRoutes';
 import transactionRoutes from './routes/transactionRoutes';
 import dashboardRoutes from './routes/dashboardRoutes';
 import budgetRoutes from './routes/budgetRoutes';
+import accountRoutes from './routes/accountRoutes';
+import recurringRoutes from './routes/recurringRoutes';
+import goalRoutes from './routes/goalRoutes';
+import debtRoutes from './routes/debtRoutes';
 import { errorHandler } from './middleware/errorHandler';
 import { notFoundHandler } from './middleware/notFound';
 import { env } from './config/env';
@@ -55,6 +59,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/budget', budgetRoutes);
+app.use('/api/accounts', accountRoutes);
+app.use('/api/recurring', recurringRoutes);
+app.use('/api/goals', goalRoutes);
+app.use('/api/debts', debtRoutes);
 
 // ─── Error Handling ──────────────────────────────────────────────────────────
 

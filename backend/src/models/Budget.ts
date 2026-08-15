@@ -5,12 +5,18 @@
 
 import mongoose, { Document, Schema } from 'mongoose';
 
+export interface ICategoryBudget {
+  category: string;
+  amount: number;
+}
+
 export interface IBudget extends Document {
   _id: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
   month: number; // 1-12
   year: number;
   amount: number;
+  categoryBudgets: ICategoryBudget[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -37,7 +43,22 @@ const budgetSchema = new Schema<IBudget>(
       type: Number,
       required: [true, 'Budget amount is required'],
       min: [0, 'Budget amount cannot be negative'],
+      default: 0,
     },
+    categoryBudgets: [
+      {
+        category: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        amount: {
+          type: Number,
+          required: true,
+          min: [0, 'Category budget amount cannot be negative'],
+        },
+      },
+    ],
   },
   {
     timestamps: true,

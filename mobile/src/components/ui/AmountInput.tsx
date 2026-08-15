@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import { View, Text, TextInput, StyleSheet } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Platform } from 'react-native';
 import { Colors, FontSize, FontWeight, Spacing } from '@/constants/theme';
 import { DEFAULT_CURRENCY } from '@/constants/currency';
 
@@ -86,6 +86,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     letterSpacing: -1,
     padding: 0,
+    ...Platform.select({
+      web: {
+        outlineStyle: 'none',
+        outlineWidth: 0,
+      } as any,
+    }),
   },
   error: {
     fontSize: FontSize.xs,

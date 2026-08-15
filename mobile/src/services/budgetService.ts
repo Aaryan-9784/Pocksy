@@ -1,19 +1,30 @@
-/**
- * Budget Service
- * API calls for budget management
- */
-
 import { api } from './api';
-import type { Budget } from '@/types';
+import type { Budget, CategoryBudget } from '@/types';
 
 export const budgetService = {
-  async setBudget(month: number, year: number, amount: number): Promise<Budget> {
-    const response = await api.post<Budget>('/budget', { month, year, amount });
+  async setBudget(
+    month: number,
+    year: number,
+    amount: number,
+    categoryBudgets?: CategoryBudget[]
+  ): Promise<Budget> {
+    const response = await api.post<Budget>('/budget', {
+      month,
+      year,
+      amount,
+      categoryBudgets,
+    });
     return response.data!;
   },
 
-  async set(payload: { month: number; year: number; amount: number }): Promise<Budget> {
-    return this.setBudget(payload.month, payload.year, payload.amount);
+  async set(payload: {
+    month: number;
+    year: number;
+    amount?: number;
+    categoryBudgets?: CategoryBudget[];
+  }): Promise<Budget> {
+    const response = await api.post<Budget>('/budget', payload);
+    return response.data!;
   },
 
   async getBudget(month?: number, year?: number): Promise<{ budget: Budget }> {
@@ -22,4 +33,5 @@ export const budgetService = {
     return response.data!;
   },
 };
+
 

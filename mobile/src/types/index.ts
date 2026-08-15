@@ -24,7 +24,7 @@ export interface UpdateProfilePayload {
 
 // ─── Transactions ────────────────────────────────────────────────────────────
 
-export type TransactionType = 'income' | 'expense';
+export type TransactionType = 'income' | 'expense' | 'transfer';
 
 export interface Transaction {
   _id: string;
@@ -34,6 +34,8 @@ export interface Transaction {
   category: string;
   description: string;
   paymentMethod?: string;
+  accountId?: string;
+  toAccountId?: string;
   date: string;
   notes?: string;
   receiptUrl?: string;
@@ -47,25 +49,70 @@ export interface CreateTransactionPayload {
   category: string;
   description: string;
   paymentMethod?: string;
+  accountId?: string;
+  toAccountId?: string;
   date: string;
   notes?: string;
+  receiptUrl?: string;
 }
 
 export interface UpdateTransactionPayload extends Partial<CreateTransactionPayload> {}
 
 // ─── Budget ──────────────────────────────────────────────────────────────────
 
+export interface CategoryBudget {
+  category: string;
+  amount: number;
+}
+
 export interface Budget {
-  _id: string;
-  userId: string;
+  _id?: string;
+  userId?: string;
   month: number;
   year: number;
   amount: number;
+  categoryBudgets?: CategoryBudget[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// ─── Accounts & Wallets ───────────────────────────────────────────────────────
+
+export type AccountType = 'cash' | 'bank' | 'credit_card' | 'wallet' | 'savings';
+
+export interface Account {
+  _id: string;
+  userId: string;
+  name: string;
+  type: AccountType;
+  balance: number;
+  initialBalance: number;
+  accountNumber?: string;
+  color?: string;
+  icon?: string;
+  isDefault?: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
-// ─── Recurring Transaction (future) ──────────────────────────────────────────
+export interface CreateAccountPayload {
+  name: string;
+  type: AccountType;
+  balance: number;
+  accountNumber?: string;
+  color?: string;
+  icon?: string;
+}
+
+export interface TransferPayload {
+  fromAccountId: string;
+  toAccountId: string;
+  amount: number;
+  date?: string;
+  description?: string;
+}
+
+// ─── Recurring Transaction / Subscriptions ───────────────────────────────────
 
 export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
@@ -80,7 +127,74 @@ export interface RecurringTransaction {
   startDate: string;
   endDate?: string;
   nextExecutionDate: string;
+  accountId?: string;
   active: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateRecurringPayload {
+  type: TransactionType;
+  amount: number;
+  category: string;
+  description: string;
+  frequency: RecurrenceFrequency;
+  startDate: string;
+  endDate?: string;
+  accountId?: string;
+}
+
+// ─── Financial Goals & Savings Pots ──────────────────────────────────────────
+
+export interface Goal {
+  _id: string;
+  userId: string;
+  title: string;
+  targetAmount: number;
+  currentAmount: number;
+  targetDate?: string;
+  category?: string;
+  color?: string;
+  icon?: string;
+  status: 'in_progress' | 'completed';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateGoalPayload {
+  title: string;
+  targetAmount: number;
+  currentAmount?: number;
+  targetDate?: string;
+  category?: string;
+  color?: string;
+  icon?: string;
+}
+
+// ─── Debt & Lending (Udhaar / IOU) ────────────────────────────────────────────
+
+export type DebtType = 'lent' | 'borrowed';
+
+export interface Debt {
+  _id: string;
+  userId: string;
+  type: DebtType;
+  personName: string;
+  amount: number;
+  remainingAmount: number;
+  dueDate?: string;
+  notes?: string;
+  settled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateDebtPayload {
+  type: DebtType;
+  personName: string;
+  amount: number;
+  dueDate?: string;
+  notes?: string;
 }
 
 // ─── Dashboard ───────────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   Share,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows } from '@/constants/theme';
@@ -22,6 +23,11 @@ import { useTransactionStore } from '@/store/transactionStore';
 import { CURRENCIES, formatAmount } from '@/constants/currency';
 import { budgetService } from '@/services/budgetService';
 import { transactionService } from '@/services/transactionService';
+import { RecurringModal } from '@/components/recurring/RecurringModal';
+import { GoalsModal } from '@/components/goals/GoalsModal';
+import { DebtModal } from '@/components/debts/DebtModal';
+import * as LocalAuthentication from 'expo-local-authentication';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const colors = Colors.light;
 
@@ -75,6 +81,7 @@ function MenuItem({
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const logout = useAuthStore((s) => s.logout);
   const user = useAuthStore((s) => s.user);
   const updateProfile = useAuthStore((s) => s.updateProfile);
@@ -85,9 +92,58 @@ export default function ProfileScreen() {
   // Modals state
   const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
   const [budgetModalVisible, setBudgetModalVisible] = useState(false);
+  const [recurringModalVisible, setRecurringModalVisible] = useState(false);
+  const [goalsModalVisible, setGoalsModalVisible] = useState(false);
+  const [debtModalVisible, setDebtModalVisible] = useState(false);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [budgetInput, setBudgetInput] = useState('');
   const [savingBudget, setSavingBudget] = useState(false);
   const [syncing, setSyncing] = useState(false);
+
+  useEffect(() => {
+    AsyncStorage.getItem('pocksy_biometric_enabled').then((val) => {
+      setBiometricEnabled(val === 'true');
+    });
+  }, []);
+
+  const handleToggleBiometric = async () => {
+    if (Platform.OS === 'web') {
+      Alert.alert('Not Supported', 'Biometric lock is only available on physical iOS and Android devices.');
+      return;
+    }
+
+    try {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+
+      if (!hasHardware || !isEnrolled) {
+        Alert.alert(
+          'Biometrics Unavailable',
+          'Please set up Face ID or Fingerprint in your device settings.'
+        );
+        return;
+      }
+
+      if (!biometricEnabled) {
+        const result = await LocalAuthentication.authenticateAsync({
+          promptMessage: 'Authenticate to enable Pocksy App Lock',
+          fallbackLabel: 'Use Passcode',
+        });
+
+        if (result.success) {
+          await AsyncStorage.setItem('pocksy_biometric_enabled', 'true');
+          setBiometricEnabled(true);
+          Alert.alert('Success 🔒', 'Biometric App Lock enabled!');
+        }
+      } else {
+        await AsyncStorage.setItem('pocksy_biometric_enabled', 'false');
+        setBiometricEnabled(false);
+        Alert.alert('App Lock Disabled', 'Biometric App Lock has been turned off.');
+      }
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Could not configure biometrics');
+    }
+  };
 
   const currencyCode = user?.currency || 'INR';
   const currencyConfig = CURRENCIES[currencyCode];
@@ -105,9 +161,10 @@ export default function ProfileScreen() {
       await updateProfile({ currency: code });
       setCurrencyModalVisible(false);
       refreshDashboard();
-      Alert.alert('Currency Updated', `Active currency set to ${code}.`);
+      refreshTransactions();
+      Alert.alert('Currency Updated', `Default currency set to ${code}`);
     } catch (err: any) {
-      Alert.alert('Update Failed', err.message || 'Could not update currency.');
+      Alert.alert('Error', err.message || 'Failed to update currency');
     }
   };
 
@@ -119,7 +176,7 @@ export default function ProfileScreen() {
   const handleSaveBudget = async () => {
     const num = parseFloat(budgetInput);
     if (isNaN(num) || num < 0) {
-      Alert.alert('Invalid Budget', 'Please enter a positive budget amount.');
+      Alert.alert('Invalid Amount', 'Please enter a valid positive number for your budget.');
       return;
     }
 
@@ -200,6 +257,23 @@ export default function ProfileScreen() {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       } catch {}
     }
+
+    const performLogout = async () => {
+      try {
+        await logout();
+        router.replace('/(auth)/login');
+      } catch (err) {
+        console.error('Logout error:', err);
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm('Are you sure you want to sign out of Pocksy?')) {
+        performLogout();
+      }
+      return;
+    }
+
     Alert.alert(
       'Sign Out',
       'Are you sure you want to sign out of Pocksy?',
@@ -208,9 +282,7 @@ export default function ProfileScreen() {
         {
           text: 'Sign Out',
           style: 'destructive',
-          onPress: async () => {
-            await logout();
-          },
+          onPress: performLogout,
         },
       ]
     );
@@ -283,6 +355,36 @@ export default function ProfileScreen() {
         />
       </View>
 
+      {/* Financial Tools Section */}
+      <Text style={styles.groupLabel}>FINANCIAL TOOLS</Text>
+      <View style={styles.menuSection}>
+        <MenuItem
+          icon="repeat-outline"
+          iconColor="#0D9488"
+          iconBg="#CCFBF1"
+          label="Subscriptions & Recurring Bills"
+          value="Manage"
+          onPress={() => setRecurringModalVisible(true)}
+        />
+        <MenuItem
+          icon="trophy-outline"
+          iconColor="#EA580C"
+          iconBg="#FFEDD5"
+          label="Goals & Savings Pots"
+          value="Track"
+          onPress={() => setGoalsModalVisible(true)}
+        />
+        <MenuItem
+          icon="people-outline"
+          iconColor="#9333EA"
+          iconBg="#F3E8FF"
+          label="Debt & Lending (IOU / Udhaar)"
+          value="Manage"
+          onPress={() => setDebtModalVisible(true)}
+          isLast
+        />
+      </View>
+
       {/* Security & Data */}
       <Text style={styles.groupLabel}>DATA & SECURITY</Text>
       <View style={styles.menuSection}>
@@ -307,7 +409,8 @@ export default function ProfileScreen() {
           iconColor="#0891B2"
           iconBg="#CFFAFE"
           label="Biometric App Lock"
-          value="Off"
+          value={biometricEnabled ? 'Enabled 🔒' : 'Off'}
+          onPress={handleToggleBiometric}
           isLast
         />
       </View>
@@ -426,6 +529,24 @@ export default function ProfileScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Subscriptions & Recurring Bills Modal */}
+      <RecurringModal
+        visible={recurringModalVisible}
+        onClose={() => setRecurringModalVisible(false)}
+      />
+
+      {/* Financial Goals & Savings Pots Modal */}
+      <GoalsModal
+        visible={goalsModalVisible}
+        onClose={() => setGoalsModalVisible(false)}
+      />
+
+      {/* Debt & Lending Tracker Modal */}
+      <DebtModal
+        visible={debtModalVisible}
+        onClose={() => setDebtModalVisible(false)}
+      />
     </ScrollView>
   );
 }
@@ -662,6 +783,12 @@ const modalStyles = StyleSheet.create({
     fontWeight: FontWeight.bold,
     color: colors.textPrimary,
     textAlign: 'center',
+    ...Platform.select({
+      web: {
+        outlineStyle: 'none',
+        outlineWidth: 0,
+      } as any,
+    }),
   },
 });
 

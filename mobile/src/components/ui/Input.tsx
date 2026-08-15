@@ -9,6 +9,7 @@ import {
   TextInput,
   StyleSheet,
   TouchableOpacity,
+  Platform,
   type TextInputProps,
   type ViewStyle,
 } from 'react-native';
@@ -123,6 +124,13 @@ const styles = StyleSheet.create({
     fontSize: FontSize.base,
     color: colors.textPrimary,
     paddingVertical: Spacing.md,
+    ...Platform.select({
+      web: {
+        outlineStyle: 'none',
+        outlineWidth: 0,
+        outlineColor: 'transparent',
+      } as any,
+    }),
   },
   leftIcon: {
     marginRight: Spacing.md,

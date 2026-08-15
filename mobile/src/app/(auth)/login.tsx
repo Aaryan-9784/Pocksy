@@ -62,6 +62,7 @@ export default function LoginScreen() {
 
     try {
       await login({ email: email.trim().toLowerCase(), password });
+      router.replace('/(tabs)');
     } catch (err: any) {
       setApiError(err.message || 'Login failed. Please verify credentials.');
     } finally {
@@ -185,6 +186,9 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: Spacing.xl,
     justifyContent: 'center',
+    maxWidth: 480,
+    width: '100%',
+    alignSelf: 'center',
   },
   branding: {
     alignItems: 'center',

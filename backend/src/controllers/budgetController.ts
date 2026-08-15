@@ -18,23 +18,33 @@ export async function setBudget(
   next: NextFunction
 ): Promise<void> {
   try {
-    const { month, year, amount } = req.body;
+    const { month, year, amount, categoryBudgets } = req.body;
 
-    if (!month || !year || amount === undefined) {
-      throw ApiError.badRequest('Month, year, and amount are required');
+    if (!month || !year) {
+      throw ApiError.badRequest('Month and year are required');
     }
 
     if (month < 1 || month > 12) {
       throw ApiError.badRequest('Month must be between 1 and 12');
     }
 
-    if (amount < 0) {
-      throw ApiError.badRequest('Budget amount cannot be negative');
+    const updateDoc: any = {};
+    if (amount !== undefined) {
+      if (amount < 0) {
+        throw ApiError.badRequest('Budget amount cannot be negative');
+      }
+      updateDoc.amount = amount;
+    }
+
+    if (Array.isArray(categoryBudgets)) {
+      updateDoc.categoryBudgets = categoryBudgets.filter(
+        (cb: any) => cb.category && typeof cb.amount === 'number' && cb.amount >= 0
+      );
     }
 
     const budget = await Budget.findOneAndUpdate(
       { userId: req.user!._id, month, year },
-      { amount },
+      { $set: updateDoc },
       { new: true, upsert: true, runValidators: true }
     );
 
@@ -66,7 +76,7 @@ export async function getBudget(
     }).lean();
 
     ApiResponse.success(res, 'Budget retrieved', {
-      budget: budget || { month, year, amount: 0 },
+      budget: budget || { month, year, amount: 0, categoryBudgets: [] },
     });
   } catch (error) {
     next(error);

@@ -28,8 +28,12 @@ import {
   Avatar,
   TransactionDetailModal,
 } from '@/components/ui';
+import { AccountCard } from '@/components/accounts/AccountCard';
+import { AccountModal } from '@/components/accounts/AccountModal';
+import { TransferModal } from '@/components/accounts/TransferModal';
 import { useAuthStore } from '@/store/authStore';
 import { useDashboardStore } from '@/store/dashboardStore';
+import { useAccountStore } from '@/store/accountStore';
 import type { Transaction } from '@/types';
 
 const colors = Colors.light;
@@ -39,10 +43,15 @@ export default function HomeScreen() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const { data, isLoading, fetchDashboard, refresh } = useDashboardStore();
+  const { accounts, fetchAccounts } = useAccountStore();
+
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [accountModalVisible, setAccountModalVisible] = useState(false);
+  const [transferModalVisible, setTransferModalVisible] = useState(false);
 
   useEffect(() => {
     fetchDashboard();
+    fetchAccounts();
   }, []);
 
   const onRefresh = useCallback(async () => {
@@ -51,7 +60,7 @@ export default function HomeScreen() {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       } catch {}
     }
-    await refresh();
+    await Promise.all([refresh(), fetchAccounts()]);
   }, []);
 
   const greeting = getGreeting();
@@ -115,6 +124,51 @@ export default function HomeScreen() {
           income={data?.totalIncome || 0}
           expenses={data?.totalExpenses || 0}
         />
+      </View>
+
+      {/* Wallets & Accounts Section */}
+      <View style={styles.accountsSection}>
+        <View style={styles.accountsHeader}>
+          <Text style={styles.accountsTitle}>Wallets & Accounts</Text>
+          <View style={styles.accountsActions}>
+            <TouchableOpacity
+              style={styles.transferBadge}
+              onPress={() => setTransferModalVisible(true)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="swap-horizontal" size={14} color={colors.primary} />
+              <Text style={styles.transferBadgeText}>Transfer</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.addAccountBadge}
+              onPress={() => setAccountModalVisible(true)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="add" size={14} color={colors.primary} />
+              <Text style={styles.addAccountBadgeText}>Add</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.accountsList}
+        >
+          {accounts.map((acc) => (
+            <AccountCard key={acc._id} account={acc} />
+          ))}
+          <TouchableOpacity
+            style={styles.newAccountCard}
+            onPress={() => setAccountModalVisible(true)}
+            activeOpacity={0.8}
+          >
+            <View style={styles.newAccountIcon}>
+              <Ionicons name="add" size={20} color={colors.primary} />
+            </View>
+            <Text style={styles.newAccountText}>New Account</Text>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
 
       {/* Quick Actions Row */}
@@ -213,6 +267,20 @@ export default function HomeScreen() {
         onUpdated={onRefresh}
         onDeleted={onRefresh}
       />
+
+      {/* Add Account Modal */}
+      <AccountModal
+        visible={accountModalVisible}
+        onClose={() => setAccountModalVisible(false)}
+        onSuccess={onRefresh}
+      />
+
+      {/* Transfer Funds Modal */}
+      <TransferModal
+        visible={transferModalVisible}
+        onClose={() => setTransferModalVisible(false)}
+        onSuccess={onRefresh}
+      />
     </ScrollView>
   );
 }
@@ -273,7 +341,85 @@ const styles = StyleSheet.create({
   },
   section: {
     paddingHorizontal: Spacing.xl,
+    marginBottom: Spacing.md,
+  },
+  accountsSection: {
     marginBottom: Spacing.lg,
+  },
+  accountsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.xl,
+    marginBottom: Spacing.sm,
+  },
+  accountsTitle: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.bold,
+    color: colors.textPrimary,
+  },
+  accountsActions: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+  },
+  transferBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.cardMuted,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  transferBadgeText: {
+    fontSize: 10,
+    fontWeight: FontWeight.bold,
+    color: colors.primary,
+  },
+  addAccountBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: colors.primaryLight,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.full,
+  },
+  addAccountBadgeText: {
+    fontSize: 10,
+    fontWeight: FontWeight.bold,
+    color: colors.primary,
+  },
+  accountsList: {
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: 4,
+  },
+  newAccountCard: {
+    width: 130,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.md,
+    backgroundColor: colors.cardMuted,
+  },
+  newAccountIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  newAccountText: {
+    fontSize: FontSize['2xs'],
+    fontWeight: FontWeight.semibold,
+    color: colors.primary,
   },
   quickActionsRow: {
     flexDirection: 'row',

@@ -1,12 +1,8 @@
-/**
- * Pocksy Root Layout
- * Determines routing: Onboarding → Auth → Main Tabs
- */
-
 import React, { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import { Platform } from 'react-native';
 import { useAuthStore } from '@/store/authStore';
 
 // Prevent splash screen from auto-hiding
@@ -20,6 +16,29 @@ export default function RootLayout() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasSeenOnboarding = useAuthStore((s) => s.hasSeenOnboarding);
   const loadPersistedState = useAuthStore((s) => s.loadPersistedState);
+
+  // Global web CSS reset for clean focus rings
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const style = document.createElement('style');
+      style.textContent = `
+        input, textarea, select {
+          outline: none !important;
+          outline-style: none !important;
+          box-shadow: none !important;
+        }
+        input:focus, textarea:focus, select:focus {
+          outline: none !important;
+          outline-style: none !important;
+          box-shadow: none !important;
+        }
+        * {
+          -webkit-tap-highlight-color: transparent;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }, []);
 
   // Load persisted auth & onboarding state on mount
   useEffect(() => {

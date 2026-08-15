@@ -81,6 +81,7 @@ export default function RegisterScreen() {
         password,
         confirmPassword,
       });
+      router.replace('/(tabs)');
     } catch (err: any) {
       setApiError(err.message || 'Registration failed. Please try again.');
     } finally {
@@ -228,6 +229,9 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: Spacing.xl,
     justifyContent: 'center',
+    maxWidth: 480,
+    width: '100%',
+    alignSelf: 'center',
   },
   branding: {
     alignItems: 'center',

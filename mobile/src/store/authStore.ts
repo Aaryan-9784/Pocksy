@@ -70,7 +70,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const { user, token } = await authService.login(payload);
       await saveToken(token);
-      set({ user, token, isAuthenticated: true, isLoading: false });
+      await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
+      set({ user, token, isAuthenticated: true, hasSeenOnboarding: true, isLoading: false });
     } catch (err: any) {
       set({ isLoading: false, error: err.message || 'Login failed' });
       throw err;
@@ -82,7 +83,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const { user, token } = await authService.register(payload);
       await saveToken(token);
-      set({ user, token, isAuthenticated: true, isLoading: false });
+      await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
+      set({ user, token, isAuthenticated: true, hasSeenOnboarding: true, isLoading: false });
     } catch (err: any) {
       set({ isLoading: false, error: err.message || 'Registration failed' });
       throw err;
@@ -108,49 +110,47 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-
   setOnboardingComplete: async () => {
     await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
     set({ hasSeenOnboarding: true });
   },
 
   logout: async () => {
-    await deleteToken();
+    try {
+      await deleteToken();
+    } catch (e) {
+      console.warn('Error deleting token:', e);
+    }
     set({
       user: null,
       token: null,
       isAuthenticated: false,
+      hasSeenOnboarding: true,
       error: null,
+      isLoading: false,
     });
   },
 
   loadPersistedState: async () => {
     try {
-      const [token, onboardingSeen] = await Promise.all([
-        getToken(),
-        AsyncStorage.getItem(ONBOARDING_KEY),
-      ]);
-
-      if (token) {
-        set({ token, isAuthenticated: true, hasSeenOnboarding: onboardingSeen === 'true' });
-        // Fetch user data with the persisted token
-        try {
-          const user = await authService.getMe();
-          set({ user, isLoading: false });
-        } catch {
-          // Token expired or invalid
-          await deleteToken();
-          set({ token: null, isAuthenticated: false, isLoading: false });
-        }
-      } else {
-        set({
-          isAuthenticated: false,
-          hasSeenOnboarding: onboardingSeen === 'true',
-          isLoading: false,
-        });
-      }
+      // Clear token and reset onboarding flag so initial launch starts on Onboarding screen
+      await deleteToken();
+      await AsyncStorage.removeItem(ONBOARDING_KEY);
+      set({
+        token: null,
+        user: null,
+        isAuthenticated: false,
+        hasSeenOnboarding: false,
+        isLoading: false,
+      });
     } catch {
-      set({ isLoading: false });
+      set({
+        token: null,
+        user: null,
+        isAuthenticated: false,
+        hasSeenOnboarding: false,
+        isLoading: false,
+      });
     }
   },
 

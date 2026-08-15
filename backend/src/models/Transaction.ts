@@ -8,11 +8,13 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface ITransaction extends Document {
   _id: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
-  type: 'income' | 'expense';
+  type: 'income' | 'expense' | 'transfer';
   amount: number;
   category: string;
   description: string;
   paymentMethod?: string;
+  accountId?: mongoose.Types.ObjectId;
+  toAccountId?: mongoose.Types.ObjectId;
   date: Date;
   notes?: string;
   createdAt: Date;
@@ -29,7 +31,7 @@ const transactionSchema = new Schema<ITransaction>(
     },
     type: {
       type: String,
-      enum: ['income', 'expense'],
+      enum: ['income', 'expense', 'transfer'],
       required: [true, 'Transaction type is required'],
     },
     amount: {
@@ -51,6 +53,14 @@ const transactionSchema = new Schema<ITransaction>(
     paymentMethod: {
       type: String,
       trim: true,
+    },
+    accountId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Account',
+    },
+    toAccountId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Account',
     },
     date: {
       type: Date,

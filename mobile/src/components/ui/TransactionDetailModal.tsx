@@ -442,6 +442,12 @@ const styles = StyleSheet.create({
     fontSize: FontSize.base,
     color: colors.textPrimary,
     marginBottom: Spacing.sm,
+    ...Platform.select({
+      web: {
+        outlineStyle: 'none',
+        outlineWidth: 0,
+      } as any,
+    }),
   },
   categoryScroll: {
     flexDirection: 'row',

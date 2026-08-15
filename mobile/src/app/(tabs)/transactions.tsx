@@ -79,7 +79,9 @@ export default function TransactionsScreen() {
 
   const totalFilteredAmount = useMemo(() => {
     return filteredTransactions.reduce((acc, t) => {
-      return t.type === 'expense' ? acc - t.amount : acc + t.amount;
+      if (t.type === 'expense') return acc - t.amount;
+      if (t.type === 'income') return acc + t.amount;
+      return acc;
     }, 0);
   }, [filteredTransactions]);
 
@@ -296,6 +298,12 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     marginLeft: Spacing.sm,
     paddingVertical: 0,
+    ...Platform.select({
+      web: {
+        outlineStyle: 'none',
+        outlineWidth: 0,
+      } as any,
+    }),
   },
   filterRow: {
     flexDirection: 'row',
