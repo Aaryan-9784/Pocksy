@@ -45,7 +45,8 @@ const userSchema = new Schema<IUser>(
     currency: {
       type: String,
       default: 'INR',
-      enum: ['INR', 'USD', 'EUR', 'GBP'],
+      trim: true,
+      uppercase: true,
     },
     monthlyBudget: {
       type: Number,

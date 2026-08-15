@@ -151,15 +151,22 @@ export function DebtModal({ visible, onClose }: DebtModalProps) {
               </Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn} activeOpacity={0.7}>
-              <Ionicons name="close" size={20} color={colors.textPrimary} />
+              <Ionicons name="close" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
           {/* Toggle Add Form Button */}
           <TouchableOpacity
             style={[styles.addToggleBtn, showAddForm && styles.addToggleBtnActive]}
-            onPress={() => setShowAddForm(!showAddForm)}
-            activeOpacity={0.8}
+            onPress={() => {
+              if ((Platform.OS as string) !== 'web') {
+                try {
+                  Haptics.selectionAsync();
+                } catch {}
+              }
+              setShowAddForm(!showAddForm);
+            }}
+            activeOpacity={0.85}
           >
             <Ionicons
               name={showAddForm ? 'list-outline' : 'people-outline'}
@@ -172,7 +179,7 @@ export function DebtModal({ visible, onClose }: DebtModalProps) {
                 showAddForm && styles.addToggleBtnTextActive,
               ]}
             >
-              {showAddForm ? 'View Records' : '+ Add Lent / Borrowed Money'}
+              {showAddForm ? 'View Records' : 'Add Lent / Borrowed Money'}
             </Text>
           </TouchableOpacity>
 
@@ -267,7 +274,9 @@ export function DebtModal({ visible, onClose }: DebtModalProps) {
                 <ActivityIndicator color={colors.primary} style={{ marginTop: Spacing.xl }} />
               ) : debts.length === 0 ? (
                 <View style={styles.emptyWrap}>
-                  <Ionicons name="people-outline" size={40} color={colors.textMuted} />
+                  <View style={styles.emptyIconCircle}>
+                    <Ionicons name="people" size={28} color={colors.primary} />
+                  </View>
                   <Text style={styles.emptyTitle}>No pending debts or loans</Text>
                   <Text style={styles.emptySub}>
                     Easily track money lent to friends or borrowed from colleagues.
@@ -408,11 +417,9 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: colors.background,
+    backgroundColor: colors.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.borderLight,
   },
   addToggleBtn: {
     flexDirection: 'row',
@@ -420,19 +427,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     backgroundColor: colors.primary,
-    paddingVertical: Spacing.sm + 2,
-    borderRadius: BorderRadius.lg,
+    paddingVertical: 13,
+    borderRadius: BorderRadius.xl,
     marginBottom: Spacing.md,
+    ...Shadows.sm,
   },
   addToggleBtnActive: {
     backgroundColor: colors.primaryLight,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.primary,
   },
   addToggleBtnText: {
     fontSize: FontSize.xs,
     fontWeight: FontWeight.bold,
     color: '#ffffff',
+    letterSpacing: -0.1,
   },
   addToggleBtnTextActive: {
     color: colors.primary,
@@ -516,6 +525,17 @@ const styles = StyleSheet.create({
   emptyWrap: {
     alignItems: 'center',
     paddingVertical: Spacing['2xl'],
+  },
+  emptyIconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: colors.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+    borderWidth: 1,
+    borderColor: 'rgba(107, 30, 43, 0.10)',
   },
   emptyTitle: {
     fontSize: FontSize.md,
