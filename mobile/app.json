@@ -22,6 +22,8 @@
       }
     },
     "web": {
+      "name": "Pocksy — Smart Wealth & Expense Tracker",
+      "shortName": "Pocksy",
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },

@@ -65,9 +65,10 @@ export default function RootLayout() {
   const [biometricsChecked, setBiometricsChecked] = useState(false);
   const appState = useRef(AppState.currentState);
 
-  // Global web CSS reset for clean focus rings
+  // Global web CSS reset for clean focus rings & browser title
   useEffect(() => {
     if ((Platform.OS as string) === 'web' && typeof document !== 'undefined') {
+      document.title = 'Pocksy — Smart Wealth & Expense Tracker';
       const style = document.createElement('style');
       style.textContent = `
         input, textarea, select {
