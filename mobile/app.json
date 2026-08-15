@@ -13,6 +13,7 @@
     },
     "android": {
       "package": "com.pocksy.app",
+      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "backgroundColor": "#6B1E2B",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -41,7 +42,11 @@
       "reactCompiler": true
     },
     "extra": {
-      "apiBaseUrl": "http://localhost:5000/api"
+      "apiBaseUrl": "http://10.10.4.248:5000/api",
+      "router": {},
+      "eas": {
+        "projectId": "dc0f52e1-fabc-40c2-8ed1-001cd1fb9a8d"
+      }
     }
   }
 }

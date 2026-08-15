@@ -2,28 +2,34 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
-// Auto-detect API URL based on platform
+// Auto-detect API URL based on platform and environment
 function getBaseUrl(): string {
-  // In production, replace with your deployed API URL
+  // 1. Explicit env variable (e.g. deployed backend URL on Render/Railway)
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+
+  // 2. Custom app.json extra config (if not localhost)
+  const extraApiUrl = Constants.expoConfig?.extra?.apiBaseUrl;
+  if (extraApiUrl && !extraApiUrl.includes('localhost') && !extraApiUrl.includes('127.0.0.1')) {
+    return extraApiUrl;
+  }
+
   const port = 5000;
 
   if (Platform.OS === 'web') {
     return `http://localhost:${port}/api`;
   }
 
-  // For Expo Go on physical device, use the debugger host IP
+  // 3. For Expo Go on physical device, use the debugger host IP
   const debuggerHost = Constants.expoConfig?.hostUri?.split(':')[0];
   if (debuggerHost) {
     return `http://${debuggerHost}:${port}/api`;
   }
 
-  // Fallback for Android emulator
-  if (Platform.OS === 'android') {
-    return `http://10.0.2.2:${port}/api`;
-  }
-
-  // Fallback for iOS simulator
-  return `http://localhost:${port}/api`;
+  // 4. Fallback to your local computer's Wi-Fi IP
+  const LOCAL_IP = '10.10.4.248';
+  return `http://${LOCAL_IP}:${port}/api`;
 }
 
 const BASE_URL = getBaseUrl();
@@ -53,7 +59,8 @@ class ApiClient {
 
 
   private buildUrl(endpoint: string, params?: Record<string, string | number | undefined>): string {
-    const url = `${BASE_URL}${endpoint}`;
+    const baseUrl = getBaseUrl();
+    const url = `${baseUrl}${endpoint}`;
 
     if (!params) return url;
 
