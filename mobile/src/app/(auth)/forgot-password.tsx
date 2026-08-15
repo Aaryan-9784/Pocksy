@@ -128,6 +128,8 @@ export default function ForgotPasswordScreen() {
               autoCapitalize="none"
               autoComplete="email"
               textContentType="emailAddress"
+              returnKeyType="go"
+              onSubmitEditing={handleSendReset}
               leftIcon={<Ionicons name="mail-outline" size={18} color={colors.textSecondary} />}
             />
 

@@ -33,22 +33,23 @@ export function BalanceCard({ balance, income, expenses }: BalanceCardProps) {
   return (
     <View style={styles.shadowWrapper}>
       <LinearGradient
-        colors={['#7E1D2E', '#52131E', '#3D0D15']}
+        colors={['#721B2A', '#4A111C', '#280A10']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.card}
       >
-        {/* Background decorative glow rings */}
+        {/* Background ambient lighting */}
         <View style={styles.glowCircle1} />
         <View style={styles.glowCircle2} />
 
-        {/* Card Header: Label & Privacy Eye */}
+        {/* Card Header: Brand, Contactless, and Privacy Eye */}
         <View style={styles.topRow}>
-          <View style={styles.labelContainer}>
+          <View style={styles.brandGroup}>
             <View style={styles.diamondPill}>
-              <Ionicons name="sparkles" size={12} color="#FBBF24" />
-              <Text style={styles.pillText}>Total Balance</Text>
+              <Ionicons name="shield-checkmark" size={12} color="#FBBF24" />
+              <Text style={styles.pillText}>POCKSY WEALTH</Text>
             </View>
+            <Ionicons name="radio-outline" size={18} color="rgba(255, 255, 255, 0.4)" style={styles.contactlessIcon} />
           </View>
           <TouchableOpacity
             onPress={toggleVisibility}
@@ -59,44 +60,45 @@ export function BalanceCard({ balance, income, expenses }: BalanceCardProps) {
             <Ionicons
               name={isVisible ? 'eye-outline' : 'eye-off-outline'}
               size={18}
-              color="rgba(255, 255, 255, 0.75)"
+              color="rgba(255, 255, 255, 0.85)"
             />
           </TouchableOpacity>
         </View>
 
         {/* Hero Amount */}
         <View style={styles.amountContainer}>
+          <Text style={styles.balanceLabel}>NET PORTFOLIO VALUE</Text>
           <Text style={styles.balance}>
-            {isVisible ? formatAmount(balance) : '₹ ••••••'}
+            {isVisible ? formatAmount(balance) : '₹ ••••••••'}
           </Text>
         </View>
 
-        {/* Bottom Income & Expense Row */}
+        {/* Bottom Income & Expense Inset Strip */}
         <View style={styles.statRow}>
-          {/* Income Pill */}
+          {/* Income Item */}
           <View style={styles.statItem}>
-            <View style={[styles.statIconBadge, { backgroundColor: 'rgba(16, 185, 129, 0.2)' }]}>
-              <Ionicons name="arrow-down-outline" size={14} color="#34D399" />
+            <View style={[styles.statIconBadge, { backgroundColor: 'rgba(16, 185, 129, 0.25)' }]}>
+              <Ionicons name="arrow-down" size={13} color="#34D399" />
             </View>
             <View style={styles.statTextGroup}>
-              <Text style={styles.statLabel}>Income</Text>
+              <Text style={styles.statLabel}>INFLOW</Text>
               <Text style={styles.statValue}>
-                {isVisible ? formatAmount(income) : '••••'}
+                {isVisible ? `+${formatAmount(income)}` : '••••'}
               </Text>
             </View>
           </View>
 
           <View style={styles.divider} />
 
-          {/* Expenses Pill */}
+          {/* Expenses Item */}
           <View style={styles.statItem}>
-            <View style={[styles.statIconBadge, { backgroundColor: 'rgba(239, 68, 68, 0.2)' }]}>
-              <Ionicons name="arrow-up-outline" size={14} color="#F87171" />
+            <View style={[styles.statIconBadge, { backgroundColor: 'rgba(239, 68, 68, 0.25)' }]}>
+              <Ionicons name="arrow-up" size={13} color="#F87171" />
             </View>
             <View style={styles.statTextGroup}>
-              <Text style={styles.statLabel}>Spent</Text>
+              <Text style={styles.statLabel}>OUTFLOW</Text>
               <Text style={styles.statValue}>
-                {isVisible ? formatAmount(expenses) : '••••'}
+                {isVisible ? `-${formatAmount(expenses)}` : '••••'}
               </Text>
             </View>
           </View>
@@ -117,61 +119,76 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   glowCircle1: {
     position: 'absolute',
-    top: -50,
+    top: -60,
     right: -40,
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: 'rgba(232, 137, 154, 0.12)',
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(232, 137, 154, 0.16)',
   },
   glowCircle2: {
     position: 'absolute',
-    bottom: -60,
-    left: -40,
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    bottom: -70,
+    left: -50,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
   },
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.md,
   },
-  labelContainer: {
+  brandGroup: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
   diamondPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    paddingVertical: 4,
+    paddingVertical: 5,
     paddingHorizontal: 10,
     borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   pillText: {
-    fontSize: FontSize.xs,
-    color: 'rgba(255, 255, 255, 0.85)',
-    fontWeight: FontWeight.medium,
-    letterSpacing: 0.3,
+    fontSize: 10,
+    color: '#FFFFFF',
+    fontWeight: FontWeight.bold,
+    letterSpacing: 0.8,
+  },
+  contactlessIcon: {
+    transform: [{ rotate: '90deg' }],
   },
   eyeButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   amountContainer: {
-    marginVertical: Spacing.md,
+    marginVertical: Spacing.sm,
+  },
+  balanceLabel: {
+    fontSize: 10,
+    color: 'rgba(255, 255, 255, 0.65)',
+    fontWeight: FontWeight.bold,
+    letterSpacing: 0.8,
+    marginBottom: 4,
   },
   balance: {
     fontSize: FontSize['4xl'],
@@ -182,13 +199,13 @@ const styles = StyleSheet.create({
   statRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.22)',
-    borderRadius: BorderRadius.lg,
+    backgroundColor: 'rgba(0, 0, 0, 0.28)',
+    borderRadius: BorderRadius.xl,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.base,
-    marginTop: Spacing.sm,
+    marginTop: Spacing.md,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.07)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   statItem: {
     flex: 1,
@@ -197,8 +214,8 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   statIconBadge: {
-    width: 32,
-    height: 32,
+    width: 30,
+    height: 30,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
@@ -207,23 +224,22 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statLabel: {
-    fontSize: FontSize['2xs'],
-    color: 'rgba(255, 255, 255, 0.65)',
-    fontWeight: FontWeight.medium,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    fontSize: 9,
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontWeight: FontWeight.bold,
+    letterSpacing: 0.6,
     marginBottom: 2,
   },
   statValue: {
-    fontSize: FontSize.base,
+    fontSize: FontSize.sm,
     color: '#FFFFFF',
-    fontWeight: FontWeight.semibold,
-    letterSpacing: -0.3,
+    fontWeight: FontWeight.bold,
+    letterSpacing: -0.2,
   },
   divider: {
     width: 1,
-    height: 28,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    height: 26,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
     marginHorizontal: Spacing.sm,
   },
 });

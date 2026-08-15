@@ -17,9 +17,10 @@ interface TransactionItemProps {
   transaction: Transaction;
   onPress?: (transaction: Transaction) => void;
   onLongPress?: (transaction: Transaction) => void;
+  isLast?: boolean;
 }
 
-export function TransactionItem({ transaction, onPress, onLongPress }: TransactionItemProps) {
+export function TransactionItem({ transaction, onPress, onLongPress, isLast = false }: TransactionItemProps) {
   const category = getCategoryById(transaction.category);
   const isExpense = transaction.type === 'expense';
 
@@ -43,7 +44,7 @@ export function TransactionItem({ transaction, onPress, onLongPress }: Transacti
       accessibilityRole="button"
       accessibilityLabel={`${transaction.description}, ${formatSignedAmount(transaction.amount, transaction.type)}`}
     >
-      <CategoryIcon categoryId={transaction.category} size={46} />
+      <CategoryIcon categoryId={transaction.category} size={42} />
 
       <View style={styles.details}>
         <Text style={styles.title} numberOfLines={1}>
@@ -73,10 +74,8 @@ export function TransactionItem({ transaction, onPress, onLongPress }: Transacti
             {
               color:
                 transaction.type === 'expense'
-                  ? colors.expense
-                  : transaction.type === 'income'
-                  ? colors.income
-                  : colors.primary,
+                  ? colors.textPrimary
+                  : colors.income,
             },
           ]}
         >
@@ -110,7 +109,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.card,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.xl,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.base,
     marginBottom: Spacing.sm,
@@ -127,7 +126,8 @@ const styles = StyleSheet.create({
     fontSize: FontSize.base,
     fontWeight: FontWeight.semibold,
     color: colors.textPrimary,
-    marginBottom: 3,
+    marginBottom: 2,
+    letterSpacing: -0.2,
   },
   metaRow: {
     flexDirection: 'row',
@@ -145,10 +145,9 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   paymentMethod: {
-    fontSize: FontSize['2xs'],
+    fontSize: 10,
     color: colors.textMuted,
-    fontWeight: FontWeight.semibold,
-    letterSpacing: 0.3,
+    fontWeight: FontWeight.bold,
   },
   date: {
     fontSize: FontSize.xs,
@@ -158,9 +157,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   amount: {
-    fontSize: FontSize.base,
+    fontSize: FontSize.md,
     fontWeight: FontWeight.bold,
     letterSpacing: -0.3,
   },
 });
-

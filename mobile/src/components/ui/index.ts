@@ -17,4 +17,7 @@ export { AmountInput } from './AmountInput';
 export { Avatar } from './Avatar';
 export { BudgetProgress } from './BudgetProgress';
 export { TransactionDetailModal } from './TransactionDetailModal';
+export { ScreenHeader } from './ScreenHeader';
+export { AppHeader } from './AppHeader';
+export { PageTitle } from './PageTitle';
 

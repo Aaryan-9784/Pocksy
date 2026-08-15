@@ -61,12 +61,12 @@ function CustomAddButton(props: any) {
       accessibilityLabel="Add transaction"
     >
       <LinearGradient
-        colors={colors.gradientPrimary}
+        colors={['#7E1D2E', '#52131E', '#3D0D15']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={tabStyles.addButtonCircle}
+        style={tabStyles.addButtonSquare}
       >
-        <Ionicons name="add" size={26} color="#FFFFFF" />
+        <Ionicons name="add" size={28} color="#FFFFFF" />
       </LinearGradient>
     </TouchableOpacity>
   );
@@ -181,19 +181,36 @@ const tabStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'transparent',
-    top: -8,
+    top: -10,
   },
-  addButtonCircle: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+  addButtonSquare: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#52131E',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 6,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#4A121D',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.35,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 8,
+      },
+      web: {
+        boxShadow: '0px 6px 16px rgba(107, 30, 43, 0.35)',
+      } as any,
+      default: {
+        shadowColor: '#4A121D',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.35,
+        shadowRadius: 10,
+      },
+    }),
   },
 });
 

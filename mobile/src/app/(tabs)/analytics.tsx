@@ -18,7 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows } from '@/constants/theme';
-import { EmptyState, LoadingState, CategoryIcon } from '@/components/ui';
+import { EmptyState, LoadingState, CategoryIcon, AppHeader, PageTitle } from '@/components/ui';
 import { CategoryBudgetModal } from '@/components/budget/CategoryBudgetModal';
 import { transactionService } from '@/services/transactionService';
 import { budgetService } from '@/services/budgetService';
@@ -173,29 +173,29 @@ export default function AnalyticsScreen() {
   const netSavings = totalIncome - totalExpenses;
   const savingsRate = totalIncome > 0 ? Math.max(0, Math.round((netSavings / totalIncome) * 100)) : 0;
 
-  if (loading && !refreshing) {
-    return <LoadingState message="Crunching your spending numbers..." />;
-  }
-
   return (
-    <ScrollView
-      style={[styles.container, { paddingTop: Math.max(insets.top, 16) }]}
-      contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing['5xl'] }]}
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor={colors.primary}
-          colors={[colors.primary]}
+    <View style={styles.container}>
+      {/* Fixed Top Brand & Profile Header */}
+      <AppHeader showProfile={true} />
+
+      <ScrollView
+        style={styles.scrollContainer}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing['5xl'] }]}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
+      >
+        {/* Page Title Block */}
+        <PageTitle
+          title="Insights & Budgets"
+          subtitle="Smart overview of your cash flow & category limits"
         />
-      }
-    >
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Insights & Budgets</Text>
-        <Text style={styles.subtitle}>Smart overview of your cash flow & category limits</Text>
-      </View>
 
       {/* Period Selector Tabs */}
       <View style={styles.periodSwitcher}>
@@ -450,6 +450,7 @@ export default function AnalyticsScreen() {
         totalBudget={monthlyBudgetAmount}
       />
     </ScrollView>
+  </View>
   );
 }
 
@@ -458,13 +459,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  scrollContainer: {
+    flex: 1,
+  },
   content: {
     paddingBottom: Spacing['5xl'],
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.xs,
     paddingBottom: Spacing.sm,
+  },
+  headerTextGroup: {
+    flex: 1,
   },
   title: {
     fontSize: FontSize['2xl'],
@@ -476,6 +486,17 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     color: colors.textSecondary,
     marginTop: 2,
+  },
+  headerActionButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    ...Shadows.sm,
   },
   periodSwitcher: {
     flexDirection: 'row',

@@ -18,7 +18,7 @@ import { Colors, BorderRadius, FontSize, FontWeight, Spacing } from '@/constants
 
 const colors = Colors.light;
 
-interface PocksyInputProps extends Omit<TextInputProps, 'style'> {
+export interface PocksyInputProps extends Omit<TextInputProps, 'style'> {
   label?: string;
   error?: string;
   hint?: string;
@@ -28,16 +28,21 @@ interface PocksyInputProps extends Omit<TextInputProps, 'style'> {
   containerStyle?: ViewStyle;
 }
 
-export function PocksyInput({
-  label,
-  error,
-  hint,
-  leftIcon,
-  rightIcon,
-  onRightIconPress,
-  containerStyle,
-  ...inputProps
-}: PocksyInputProps) {
+export const PocksyInput = React.forwardRef<TextInput, PocksyInputProps>(function PocksyInput(
+  {
+    label,
+    error,
+    hint,
+    leftIcon,
+    rightIcon,
+    onRightIconPress,
+    containerStyle,
+    onSubmitEditing,
+    onKeyPress,
+    ...inputProps
+  },
+  ref
+) {
   const [isFocused, setIsFocused] = useState(false);
 
   const borderColor = error
@@ -45,6 +50,15 @@ export function PocksyInput({
     : isFocused
       ? colors.primary
       : colors.border;
+
+  const handleKeyPress = (e: any) => {
+    onKeyPress?.(e);
+    if (Platform.OS === 'web') {
+      if (e?.nativeEvent?.key === 'Enter' || e?.key === 'Enter') {
+        onSubmitEditing?.(e as any);
+      }
+    }
+  };
 
   return (
     <View style={[styles.container, containerStyle]}>
@@ -63,6 +77,7 @@ export function PocksyInput({
         {leftIcon && <View style={styles.leftIcon}>{leftIcon}</View>}
 
         <TextInput
+          ref={ref}
           style={[
             styles.input,
             leftIcon ? { paddingLeft: 0 } : null,
@@ -72,6 +87,8 @@ export function PocksyInput({
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           selectionColor={colors.primary}
+          onSubmitEditing={onSubmitEditing}
+          onKeyPress={handleKeyPress}
           {...inputProps}
         />
 
@@ -95,7 +112,7 @@ export function PocksyInput({
       {hint && !error ? <Text style={styles.hint}>{hint}</Text> : null}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

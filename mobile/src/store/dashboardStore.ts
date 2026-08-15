@@ -29,24 +29,23 @@ const initialData: DashboardData = {
 };
 
 export const useDashboardStore = create<DashboardState>((set) => ({
-  data: null,
+  data: initialData,
   isLoading: false,
   error: null,
 
   fetchDashboard: async () => {
-    set({ isLoading: true, error: null });
     try {
       const data = await dashboardService.getDashboard();
-      set({ data, isLoading: false });
+      set({ data, isLoading: false, error: null });
     } catch (err: any) {
-      set({ isLoading: false, error: err.message, data: initialData });
+      set({ isLoading: false, error: err.message });
     }
   },
 
   refresh: async () => {
     try {
       const data = await dashboardService.getDashboard();
-      set({ data });
+      set({ data, error: null });
     } catch {
       // Silent fail on refresh
     }

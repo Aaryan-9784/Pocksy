@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows } from '@/constants/theme';
-import { PocksyButton, PocksyInput, CategoryIcon } from '@/components/ui';
+import { PocksyButton, PocksyInput, CategoryIcon, AppHeader, PageTitle } from '@/components/ui';
 import { EXPENSE_CATEGORIES, INCOME_SOURCES, PAYMENT_METHODS } from '@/constants/categories';
 import { useTransactionStore } from '@/store/transactionStore';
 import { useDashboardStore } from '@/store/dashboardStore';
@@ -212,21 +212,25 @@ export default function AddScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView
-        style={[styles.container, { paddingTop: Math.max(insets.top, 16) }]}
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing['5xl'] }]}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
+    <View style={styles.container}>
+      {/* Fixed Top Brand & Profile Header */}
+      <AppHeader showProfile={true} />
+
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {/* Top Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Add Record</Text>
-          <Text style={styles.subtitle}>Log your income or expense quickly</Text>
-        </View>
+        <ScrollView
+          style={styles.scrollContainer}
+          contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing['5xl'] }]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Page Title Block */}
+          <PageTitle
+            title="New Transaction"
+            subtitle="Log your income or expense quickly"
+          />
 
         {/* Type Switcher */}
         <View style={styles.typeSwitcher}>
@@ -497,6 +501,7 @@ export default function AddScreen() {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+  </View>
   );
 }
 
@@ -508,12 +513,21 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  scrollContainer: {
+    flex: 1,
+  },
   content: {
     paddingHorizontal: Spacing.xl,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingTop: Spacing.xs,
     paddingBottom: Spacing.md,
+  },
+  headerTextGroup: {
+    flex: 1,
   },
   title: {
     fontSize: FontSize['2xl'],
@@ -525,6 +539,17 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     color: colors.textSecondary,
     marginTop: 2,
+  },
+  headerActionButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    ...Shadows.sm,
   },
   typeSwitcher: {
     flexDirection: 'row',

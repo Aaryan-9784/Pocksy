@@ -14,9 +14,10 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows } from '@/constants/theme';
-import { Avatar, PocksyButton } from '@/components/ui';
+import { Avatar, PocksyButton, AppHeader, PageTitle } from '@/components/ui';
 import { useAuthStore } from '@/store/authStore';
 import { useDashboardStore } from '@/store/dashboardStore';
 import { useTransactionStore } from '@/store/transactionStore';
@@ -95,6 +96,8 @@ export default function ProfileScreen() {
   const [recurringModalVisible, setRecurringModalVisible] = useState(false);
   const [goalsModalVisible, setGoalsModalVisible] = useState(false);
   const [debtModalVisible, setDebtModalVisible] = useState(false);
+  const [logoutModalVisible, setLogoutModalVisible] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [budgetInput, setBudgetInput] = useState('');
   const [savingBudget, setSavingBudget] = useState(false);
@@ -257,35 +260,25 @@ export default function ProfileScreen() {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       } catch {}
     }
+    setLogoutModalVisible(true);
+  };
 
-    const performLogout = async () => {
-      try {
-        await logout();
-        router.replace('/(auth)/login');
-      } catch (err) {
-        console.error('Logout error:', err);
+  const performLogout = async () => {
+    setLoggingOut(true);
+    try {
+      if (Platform.OS !== 'web') {
+        try {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        } catch {}
       }
-    };
-
-    if (Platform.OS === 'web') {
-      if (typeof window !== 'undefined' && window.confirm('Are you sure you want to sign out of Pocksy?')) {
-        performLogout();
-      }
-      return;
+      await logout();
+      setLogoutModalVisible(false);
+      router.replace('/(auth)/login');
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      setLoggingOut(false);
     }
-
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out of Pocksy?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: performLogout,
-        },
-      ]
-    );
   };
 
   const memberSince = user?.createdAt
@@ -296,35 +289,40 @@ export default function ProfileScreen() {
     : 'Recent';
 
   return (
-    <ScrollView
-      style={[styles.container, { paddingTop: Math.max(insets.top, 16) }]}
-      contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing['5xl'] }]}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={styles.header}>
-        <Text style={styles.title}>Account</Text>
-        <Text style={styles.subtitle}>Manage your profile & preferences</Text>
-      </View>
+    <View style={styles.container}>
+      {/* Fixed Top Brand & Profile Header */}
+      <AppHeader showProfile={true} />
 
-      {/* Hero Profile card */}
-      <View style={styles.profileCard}>
-        <Avatar name={user?.name || 'User'} size={68} />
-        <View style={styles.profileInfo}>
-          <View style={styles.nameRow}>
-            <Text style={styles.profileName}>{user?.name || 'Pocksy User'}</Text>
-            <View style={styles.proBadge}>
-              <Ionicons name="sparkles" size={10} color="#D97706" />
-              <Text style={styles.proText}>PRO</Text>
+      <ScrollView
+        style={styles.scrollContainer}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing['5xl'] }]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Page Title Block */}
+        <PageTitle
+          title="Account"
+          subtitle="Manage your profile & preferences"
+        />
+
+        {/* Hero Profile card */}
+        <View style={styles.profileCard}>
+          <Avatar name={user?.name || 'AP'} size={68} showOnline={true} />
+          <View style={styles.profileInfo}>
+            <View style={styles.nameRow}>
+              <Text style={styles.profileName}>{user?.name || 'Pocksy User'}</Text>
+              <View style={styles.freeBadge}>
+                <Ionicons name="shield-checkmark" size={11} color={colors.primary} />
+                <Text style={styles.freeBadgeText}>FREE FOREVER</Text>
+              </View>
+            </View>
+            <Text style={styles.profileEmail}>{user?.email || 'user@pocksy.app'}</Text>
+
+            <View style={styles.memberPill}>
+              <Ionicons name="calendar-outline" size={12} color={colors.textSecondary} />
+              <Text style={styles.memberText}>Member since {memberSince}</Text>
             </View>
           </View>
-          <Text style={styles.profileEmail}>{user?.email || 'user@pocksy.app'}</Text>
-
-          <View style={styles.memberPill}>
-            <Ionicons name="calendar-outline" size={12} color={colors.textSecondary} />
-            <Text style={styles.memberText}>Member since {memberSince}</Text>
-          </View>
         </View>
-      </View>
 
       {/* Preferences Section */}
       <Text style={styles.groupLabel}>PREFERENCES</Text>
@@ -547,7 +545,53 @@ export default function ProfileScreen() {
         visible={debtModalVisible}
         onClose={() => setDebtModalVisible(false)}
       />
+
+      {/* Pocksy Signature Theme Sign Out Confirmation Modal */}
+      <Modal
+        visible={logoutModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => !loggingOut && setLogoutModalVisible(false)}
+      >
+        <View style={logoutModalStyles.overlay}>
+          <View style={logoutModalStyles.dialog}>
+            {/* Ambient Dual-Ring Burgundy Icon Core */}
+            <View style={logoutModalStyles.glowOuterRing}>
+              <LinearGradient
+                colors={colors.gradientPrimary}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={logoutModalStyles.iconCore}
+              >
+                <Ionicons name="log-out-outline" size={26} color="#FFFFFF" />
+              </LinearGradient>
+            </View>
+
+            <Text style={logoutModalStyles.title}>Sign Out of Pocksy?</Text>
+            <Text style={logoutModalStyles.subtitle}>
+              Are you sure you want to sign out? Your financial records and configurations remain securely stored.
+            </Text>
+
+            <View style={logoutModalStyles.btnGroup}>
+              <PocksyButton
+                title="Yes, Sign Out"
+                onPress={performLogout}
+                loading={loggingOut}
+                variant="primary"
+                icon={<Ionicons name="log-out-outline" size={18} color="#FFFFFF" />}
+              />
+              <PocksyButton
+                title="Cancel"
+                onPress={() => setLogoutModalVisible(false)}
+                variant="outline"
+                disabled={loggingOut}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
+  </View>
   );
 }
 
@@ -557,13 +601,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  scrollContainer: {
+    flex: 1,
+  },
   content: {
     paddingBottom: Spacing['5xl'],
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.xs,
-    paddingBottom: Spacing.md,
+    paddingBottom: Spacing.sm,
+  },
+  headerTextGroup: {
+    flex: 1,
   },
   title: {
     fontSize: FontSize['2xl'],
@@ -575,6 +628,17 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     color: colors.textSecondary,
     marginTop: 2,
+  },
+  headerActionButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    ...Shadows.sm,
   },
   profileCard: {
     flexDirection: 'row',
@@ -603,19 +667,22 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     letterSpacing: -0.3,
   },
-  proBadge: {
+  freeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: colors.primaryLight,
     paddingVertical: 2,
-    paddingHorizontal: 6,
+    paddingHorizontal: 8,
     borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(107, 30, 43, 0.12)',
   },
-  proText: {
-    fontSize: FontSize['2xs'],
-    color: '#D97706',
+  freeBadgeText: {
+    fontSize: 9,
+    color: colors.primary,
     fontWeight: FontWeight.heavy,
+    letterSpacing: 0.4,
   },
   profileEmail: {
     fontSize: FontSize.xs,
@@ -789,6 +856,73 @@ const modalStyles = StyleSheet.create({
         outlineWidth: 0,
       } as any,
     }),
+  },
+});
+
+const logoutModalStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(20, 14, 16, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.xl,
+    ...Platform.select({
+      web: {
+        backdropFilter: 'blur(6px)',
+      } as any,
+    }),
+  },
+  dialog: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: colors.card,
+    borderRadius: BorderRadius['2xl'],
+    paddingVertical: Spacing['2xl'],
+    paddingHorizontal: Spacing.xl,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: colors.borderLight,
+    ...Shadows.lg,
+  },
+  glowOuterRing: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: colors.primaryLight,
+    borderWidth: 1.5,
+    borderColor: 'rgba(107, 30, 43, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.md,
+    ...Shadows.sm,
+  },
+  iconCore: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadows.sm,
+  },
+  title: {
+    fontSize: FontSize.xl,
+    fontWeight: FontWeight.heavy,
+    color: colors.textPrimary,
+    textAlign: 'center',
+    marginBottom: Spacing.xs,
+    letterSpacing: -0.4,
+  },
+  subtitle: {
+    fontSize: FontSize.xs,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 19,
+    marginBottom: Spacing.xl,
+    paddingHorizontal: Spacing.xs,
+  },
+  btnGroup: {
+    width: '100%',
+    gap: Spacing.sm,
   },
 });
 

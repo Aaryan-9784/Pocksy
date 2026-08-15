@@ -35,6 +35,8 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState('');
 
+  const passwordInputRef = React.useRef<any>(null);
+
   const validate = (): boolean => {
     const newErrors: { email?: string; password?: string } = {};
 
@@ -121,10 +123,14 @@ export default function LoginScreen() {
             autoCapitalize="none"
             autoComplete="email"
             textContentType="emailAddress"
+            returnKeyType="next"
+            onSubmitEditing={() => passwordInputRef.current?.focus()}
+            blurOnSubmit={false}
             leftIcon={<Ionicons name="mail-outline" size={18} color={colors.textSecondary} />}
           />
 
           <PocksyInput
+            ref={passwordInputRef}
             label="PASSWORD"
             placeholder="Enter your password"
             value={password}
@@ -136,6 +142,8 @@ export default function LoginScreen() {
             secureTextEntry={!showPassword}
             autoComplete="password"
             textContentType="password"
+            returnKeyType="go"
+            onSubmitEditing={handleLogin}
             leftIcon={<Ionicons name="lock-closed-outline" size={18} color={colors.textSecondary} />}
             rightIcon={
               <Ionicons

@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows } from '@/constants/theme';
 import {
@@ -27,6 +27,8 @@ import {
   LoadingState,
   Avatar,
   TransactionDetailModal,
+  AppHeader,
+  PageTitle,
 } from '@/components/ui';
 import { AccountCard } from '@/components/accounts/AccountCard';
 import { AccountModal } from '@/components/accounts/AccountModal';
@@ -75,77 +77,134 @@ export default function HomeScreen() {
     router.push(path);
   };
 
-  if (isLoading && !data) {
-    return <LoadingState message="Loading your financial dashboard..." />;
-  }
-
   return (
-    <ScrollView
-      style={[styles.container, { paddingTop: Math.max(insets.top, 16) }]}
-      contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing['5xl'] }]}
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl
-          refreshing={isLoading}
-          onRefresh={onRefresh}
-          tintColor={colors.primary}
-          colors={[colors.primary]}
-        />
-      }
-    >
-      {/* Top Header Bar */}
-      <View style={styles.topBar}>
-        <TouchableOpacity
-          style={styles.profileSection}
-          onPress={() => navigateTo('/(tabs)/profile')}
-          activeOpacity={0.8}
-        >
-          <Avatar name={user?.name || 'User'} size={46} />
-          <View style={styles.greetingGroup}>
-            <Text style={styles.greetingText}>{greeting},</Text>
-            <Text style={styles.userName}>{userName} 👋</Text>
-          </View>
-        </TouchableOpacity>
+    <View style={styles.container}>
+      {/* Fixed Top Brand & Profile Header */}
+      <AppHeader
+        showProfile={true}
+        onProfilePress={() => navigateTo('/(tabs)/profile')}
+      />
 
-        <TouchableOpacity
-          style={styles.bellButton}
-          onPress={onRefresh}
-          activeOpacity={0.7}
-          accessibilityLabel="Refresh data"
-        >
-          <Ionicons name="refresh-outline" size={20} color={colors.textPrimary} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Hero Balance Card */}
-      <View style={styles.section}>
-        <BalanceCard
-          balance={data?.totalBalance || 0}
-          income={data?.totalIncome || 0}
-          expenses={data?.totalExpenses || 0}
+      <ScrollView
+        style={styles.scrollContainer}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing['5xl'] }]}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
+      >
+        {/* Page Title Block */}
+        <PageTitle
+          title="Dashboard"
+          subtitle={`${greeting}, ${userName} 👋`}
         />
+
+        {/* Hero Balance Card */}
+        <View style={styles.section}>
+          <BalanceCard
+            balance={data?.totalBalance || 0}
+            income={data?.totalIncome || 0}
+            expenses={data?.totalExpenses || 0}
+          />
+        </View>
+
+      {/* Quick Action Tiles */}
+      <View style={styles.quickActionsContainer}>
+        <View style={styles.quickActionsCard}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => {
+              if (Platform.OS !== 'web') {
+                try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
+              }
+              router.push({ pathname: '/(tabs)/add', params: { type: 'expense' } });
+            }}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel="Add Expense"
+          >
+            <View style={[styles.actionIconCircle, { backgroundColor: colors.dangerLight }]}>
+              <Feather name="arrow-up-right" size={21} color={colors.danger} />
+            </View>
+            <Text style={styles.actionLabel}>Expense</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => {
+              if (Platform.OS !== 'web') {
+                try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
+              }
+              router.push({ pathname: '/(tabs)/add', params: { type: 'income' } });
+            }}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel="Add Income"
+          >
+            <View style={[styles.actionIconCircle, { backgroundColor: colors.successLight }]}>
+              <Feather name="arrow-down-left" size={21} color={colors.success} />
+            </View>
+            <Text style={styles.actionLabel}>Income</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => {
+              if (Platform.OS !== 'web') {
+                try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
+              }
+              setTransferModalVisible(true);
+            }}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel="Transfer Funds"
+          >
+            <View style={[styles.actionIconCircle, { backgroundColor: colors.primaryLight }]}>
+              <Feather name="repeat" size={19} color={colors.primary} />
+            </View>
+            <Text style={styles.actionLabel}>Transfer</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => {
+              if (Platform.OS !== 'web') {
+                try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
+              }
+              navigateTo('/(tabs)/analytics');
+            }}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel="View Insights"
+          >
+            <View style={[styles.actionIconCircle, { backgroundColor: '#F1F5F9' }]}>
+              <Feather name="pie-chart" size={19} color="#475569" />
+            </View>
+            <Text style={styles.actionLabel}>Insights</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Wallets & Accounts Section */}
       <View style={styles.accountsSection}>
         <View style={styles.accountsHeader}>
-          <Text style={styles.accountsTitle}>Wallets & Accounts</Text>
+          <View>
+            <Text style={styles.accountsTitle}>Wallets & Accounts</Text>
+            <Text style={styles.accountsSubTitle}>{accounts.length} active account{accounts.length !== 1 ? 's' : ''}</Text>
+          </View>
           <View style={styles.accountsActions}>
-            <TouchableOpacity
-              style={styles.transferBadge}
-              onPress={() => setTransferModalVisible(true)}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="swap-horizontal" size={14} color={colors.primary} />
-              <Text style={styles.transferBadgeText}>Transfer</Text>
-            </TouchableOpacity>
             <TouchableOpacity
               style={styles.addAccountBadge}
               onPress={() => setAccountModalVisible(true)}
               activeOpacity={0.8}
             >
               <Ionicons name="add" size={14} color={colors.primary} />
-              <Text style={styles.addAccountBadgeText}>Add</Text>
+              <Text style={styles.addAccountBadgeText}>Add New</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -171,53 +230,6 @@ export default function HomeScreen() {
         </ScrollView>
       </View>
 
-      {/* Quick Actions Row */}
-      <View style={styles.quickActionsRow}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => router.push({ pathname: '/(tabs)/add', params: { type: 'expense' } })}
-          activeOpacity={0.75}
-        >
-          <View style={[styles.actionIconCircle, { backgroundColor: colors.dangerLight }]}>
-            <Ionicons name="arrow-up" size={18} color={colors.danger} />
-          </View>
-          <Text style={styles.actionLabel}>Expense</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => router.push({ pathname: '/(tabs)/add', params: { type: 'income' } })}
-          activeOpacity={0.75}
-        >
-          <View style={[styles.actionIconCircle, { backgroundColor: colors.successLight }]}>
-            <Ionicons name="arrow-down" size={18} color={colors.success} />
-          </View>
-          <Text style={styles.actionLabel}>Income</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => navigateTo('/(tabs)/analytics')}
-          activeOpacity={0.75}
-        >
-          <View style={[styles.actionIconCircle, { backgroundColor: colors.primaryLight }]}>
-            <Ionicons name="pie-chart" size={18} color={colors.primary} />
-          </View>
-          <Text style={styles.actionLabel}>Insights</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => navigateTo('/(tabs)/transactions')}
-          activeOpacity={0.75}
-        >
-          <View style={[styles.actionIconCircle, { backgroundColor: '#F1F5F9' }]}>
-            <Ionicons name="receipt" size={18} color="#64748B" />
-          </View>
-          <Text style={styles.actionLabel}>Activity</Text>
-        </TouchableOpacity>
-      </View>
-
       {/* Budget Progress Widget */}
       {(data?.monthlyBudget || user?.monthlyBudget || 0) > 0 && (
         <View style={styles.section}>
@@ -232,7 +244,7 @@ export default function HomeScreen() {
       <View style={styles.sectionHeaderWrap}>
         <SectionHeader
           title="Recent Activity"
-          actionLabel="See All"
+          actionLabel="View All"
           onAction={() => navigateTo('/(tabs)/transactions')}
         />
       </View>
@@ -282,6 +294,7 @@ export default function HomeScreen() {
         onSuccess={onRefresh}
       />
     </ScrollView>
+  </View>
   );
 }
 
@@ -298,24 +311,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  scrollContainer: {
+    flex: 1,
+  },
   content: {
     paddingBottom: Spacing['5xl'],
   },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  greetingSection: {
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.xs,
-    paddingBottom: Spacing.lg,
-  },
-  profileSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  greetingGroup: {
-    justifyContent: 'center',
+    paddingBottom: Spacing.md,
   },
   greetingText: {
     fontSize: FontSize.xs,
@@ -323,27 +328,54 @@ const styles = StyleSheet.create({
     fontWeight: FontWeight.medium,
   },
   userName: {
-    fontSize: FontSize.lg,
+    fontSize: FontSize['2xl'],
     fontWeight: FontWeight.bold,
     color: colors.textPrimary,
-    letterSpacing: -0.3,
-  },
-  bellButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: colors.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    ...Shadows.sm,
+    letterSpacing: -0.5,
+    marginTop: 2,
   },
   section: {
     paddingHorizontal: Spacing.xl,
     marginBottom: Spacing.md,
   },
+  quickActionsContainer: {
+    paddingHorizontal: Spacing.xl,
+    marginVertical: Spacing.xs,
+  },
+  quickActionsCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderRadius: BorderRadius.xl,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    ...Shadows.sm,
+  },
+  actionButton: {
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  actionIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: colors.borderLight,
+    ...Shadows.sm,
+  },
+  actionLabel: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.semibold,
+    color: colors.textSecondary,
+  },
   accountsSection: {
+    marginTop: Spacing.md,
     marginBottom: Spacing.lg,
   },
   accountsHeader: {
@@ -358,37 +390,29 @@ const styles = StyleSheet.create({
     fontWeight: FontWeight.bold,
     color: colors.textPrimary,
   },
+  accountsSubTitle: {
+    fontSize: FontSize['2xs'],
+    color: colors.textMuted,
+    marginTop: 1,
+  },
   accountsActions: {
     flexDirection: 'row',
     gap: Spacing.xs,
   },
-  transferBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: colors.cardMuted,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-  },
-  transferBadgeText: {
-    fontSize: 10,
-    fontWeight: FontWeight.bold,
-    color: colors.primary,
-  },
   addAccountBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
-    backgroundColor: colors.primaryLight,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    gap: 4,
+    backgroundColor: colors.card,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    ...Shadows.sm,
   },
   addAccountBadgeText: {
-    fontSize: 10,
+    fontSize: FontSize['2xs'],
     fontWeight: FontWeight.bold,
     color: colors.primary,
   },
@@ -398,7 +422,7 @@ const styles = StyleSheet.create({
   },
   newAccountCard: {
     width: 130,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.xl,
     borderWidth: 1.5,
     borderColor: colors.border,
     borderStyle: 'dashed',
@@ -420,33 +444,6 @@ const styles = StyleSheet.create({
     fontSize: FontSize['2xs'],
     fontWeight: FontWeight.semibold,
     color: colors.primary,
-  },
-  quickActionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.xl,
-    marginBottom: Spacing.xl,
-    marginTop: Spacing['2xs'],
-  },
-  actionButton: {
-    alignItems: 'center',
-    gap: 6,
-    flex: 1,
-  },
-  actionIconCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    ...Shadows.sm,
-  },
-  actionLabel: {
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.semibold,
-    color: colors.textSecondary,
   },
   sectionHeaderWrap: {
     paddingHorizontal: Spacing.xs,

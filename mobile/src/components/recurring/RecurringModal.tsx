@@ -151,15 +151,18 @@ export function RecurringModal({ visible, onClose }: RecurringModalProps) {
     >
       <View style={styles.backdrop}>
         <View style={styles.sheetContainer}>
-          {/* Header */}
+          {/* Top Handle Pill */}
+          <View style={styles.handlePill} />
+
+          {/* Unified Modal Header */}
           <View style={styles.header}>
-            <View>
+            <View style={styles.headerTextGroup}>
               <Text style={styles.title}>Subscriptions & Recurring Bills</Text>
               <Text style={styles.subtitle}>
                 Estimated monthly commitment: {formatAmount(monthlyTotal)}
               </Text>
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn} activeOpacity={0.7}>
               <Ionicons name="close" size={20} color={colors.textPrimary} />
             </TouchableOpacity>
           </View>
@@ -345,17 +348,25 @@ export function RecurringModal({ visible, onClose }: RecurringModalProps) {
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: colors.overlay,
     justifyContent: 'flex-end',
   },
   sheetContainer: {
     backgroundColor: colors.card,
-    borderTopLeftRadius: BorderRadius.xl,
-    borderTopRightRadius: BorderRadius.xl,
-    paddingTop: Spacing.lg,
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Platform.OS === 'ios' ? Spacing['2xl'] : Spacing.lg,
-    maxHeight: '88%',
+    borderTopLeftRadius: BorderRadius['2xl'],
+    borderTopRightRadius: BorderRadius['2xl'],
+    paddingTop: Spacing.sm,
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: Platform.OS === 'ios' ? Spacing['2xl'] : Spacing.xl,
+    maxHeight: '85%',
+  },
+  handlePill: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.border,
+    alignSelf: 'center',
+    marginBottom: Spacing.sm,
   },
   header: {
     flexDirection: 'row',
@@ -363,10 +374,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing.md,
   },
+  headerTextGroup: {
+    flex: 1,
+  },
   title: {
     fontSize: FontSize.lg,
     fontWeight: FontWeight.bold,
     color: colors.textPrimary,
+    letterSpacing: -0.3,
   },
   subtitle: {
     fontSize: FontSize.xs,
@@ -380,6 +395,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.borderLight,
   },
   addToggleBtn: {
     flexDirection: 'row',

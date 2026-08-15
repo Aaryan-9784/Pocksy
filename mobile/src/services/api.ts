@@ -94,7 +94,12 @@ class ApiClient {
     }
 
     const response = await fetch(url, fetchOptions);
-    const data: ApiResponse<T> = await response.json();
+    let data: ApiResponse<T>;
+    try {
+      data = await response.json();
+    } catch {
+      data = { success: false, message: response.statusText || 'Server error' };
+    }
 
     if (!response.ok) {
       throw new ApiError(

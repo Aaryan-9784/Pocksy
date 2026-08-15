@@ -153,13 +153,21 @@ export function TransactionDetailModal({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.sheetContainer}>
-          {/* Header */}
+          {/* Top Handle Pill */}
+          <View style={styles.handlePill} />
+
+          {/* Unified Modal Header */}
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>
-              {isEditing ? 'Edit Transaction' : 'Transaction Details'}
-            </Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Ionicons name="close" size={20} color={colors.textSecondary} />
+            <View style={styles.headerTextGroup}>
+              <Text style={styles.headerTitle}>
+                {isEditing ? 'Edit Transaction' : 'Transaction Details'}
+              </Text>
+              <Text style={styles.headerSubtitle}>
+                {isEditing ? 'Modify transaction fields' : 'Complete activity breakdown'}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn} activeOpacity={0.7} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="close" size={20} color={colors.textPrimary} />
             </TouchableOpacity>
           </View>
 
@@ -326,40 +334,58 @@ export function TransactionDetailModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay,
     justifyContent: 'flex-end',
   },
   sheetContainer: {
     backgroundColor: colors.card,
     borderTopLeftRadius: BorderRadius['2xl'],
     borderTopRightRadius: BorderRadius['2xl'],
-    maxHeight: '88%',
-    paddingBottom: Spacing['2xl'],
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+    maxHeight: '90%',
+    paddingTop: Spacing.sm,
+    paddingBottom: Platform.OS === 'ios' ? Spacing['2xl'] : Spacing.xl,
     ...Shadows.lg,
+  },
+  handlePill: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.border,
+    alignSelf: 'center',
+    marginBottom: Spacing.sm,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
+    paddingBottom: Spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderLight,
   },
+  headerTextGroup: {
+    flex: 1,
+  },
   headerTitle: {
-    fontSize: FontSize.md,
+    fontSize: FontSize.lg,
     fontWeight: FontWeight.bold,
     color: colors.textPrimary,
+    letterSpacing: -0.3,
+  },
+  headerSubtitle: {
+    fontSize: FontSize.xs,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
   closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.borderLight,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.borderLight,
   },
   content: {
     paddingHorizontal: Spacing.xl,

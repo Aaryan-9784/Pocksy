@@ -19,7 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows } from '@/constants/theme';
-import { TransactionItem, EmptyState, LoadingState, TransactionDetailModal } from '@/components/ui';
+import { TransactionItem, EmptyState, LoadingState, TransactionDetailModal, AppHeader, PageTitle } from '@/components/ui';
 import { useTransactionStore } from '@/store/transactionStore';
 import { useDashboardStore } from '@/store/dashboardStore';
 import { formatAmount } from '@/constants/currency';
@@ -126,12 +126,16 @@ export default function TransactionsScreen() {
   );
 
   return (
-    <View style={[styles.container, { paddingTop: Math.max(insets.top, 16) }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Activity</Text>
-        <Text style={styles.subtitle}>All your spending & income records</Text>
-      </View>
+    <View style={styles.container}>
+      {/* Real App Header: Brand on Left, Profile on Right */}
+      <AppHeader showProfile={true} />
+
+      {/* Page Title Block */}
+      <PageTitle
+        title="Transactions"
+        subtitle="All your spending & income records"
+        badge={filteredTransactions.length > 0 ? `${filteredTransactions.length} RECS` : undefined}
+      />
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
@@ -139,7 +143,7 @@ export default function TransactionsScreen() {
           <Ionicons name="search-outline" size={18} color={colors.textMuted} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search activity, category, notes..."
+            placeholder="Search transactions, categories, notes..."
             placeholderTextColor={colors.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -154,58 +158,65 @@ export default function TransactionsScreen() {
         </View>
       </View>
 
-      {/* Filter tabs */}
-      <View style={styles.filterRow}>
-        {(
-          [
-            { id: 'all', label: 'All', icon: 'apps-outline' },
-            { id: 'expense', label: 'Expenses', icon: 'arrow-up-outline' },
-            { id: 'income', label: 'Income', icon: 'arrow-down-outline' },
-          ] as const
-        ).map((filter) => {
-          const isActive = activeFilter === filter.id;
-          return (
-            <TouchableOpacity
-              key={filter.id}
-              style={[
-                styles.filterTab,
-                isActive && styles.filterTabActive,
-              ]}
-              onPress={() => handleFilterChange(filter.id)}
-              activeOpacity={0.75}
-            >
-              <Ionicons
-                name={filter.icon as any}
-                size={14}
-                color={isActive ? '#FFFFFF' : colors.textSecondary}
-              />
-              <Text
+      {/* Unified Capsule Filter Tabs */}
+      <View style={styles.filterContainer}>
+        <View style={styles.filterRow}>
+          {(
+            [
+              { id: 'all', label: 'All', icon: 'apps-outline' },
+              { id: 'expense', label: 'Expenses', icon: 'arrow-up-outline' },
+              { id: 'income', label: 'Income', icon: 'arrow-down-outline' },
+            ] as const
+          ).map((filter) => {
+            const isActive = activeFilter === filter.id;
+            return (
+              <TouchableOpacity
+                key={filter.id}
                 style={[
-                  styles.filterTabText,
-                  isActive && styles.filterTabTextActive,
+                  styles.filterTab,
+                  isActive && styles.filterTabActive,
                 ]}
+                onPress={() => handleFilterChange(filter.id)}
+                activeOpacity={0.75}
               >
-                {filter.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
+                <Ionicons
+                  name={filter.icon as any}
+                  size={14}
+                  color={isActive ? '#FFFFFF' : colors.textSecondary}
+                />
+                <Text
+                  style={[
+                    styles.filterTabText,
+                    isActive && styles.filterTabTextActive,
+                  ]}
+                >
+                  {filter.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
       </View>
 
-      {/* Summary strip */}
+      {/* Summary strip card */}
       {filteredTransactions.length > 0 ? (
-        <View style={styles.summaryBar}>
-          <Text style={styles.summaryCount}>
-            {filteredTransactions.length} transaction{filteredTransactions.length !== 1 ? 's' : ''}
-          </Text>
-          <Text
-            style={[
-              styles.summaryTotal,
-              { color: totalFilteredAmount >= 0 ? colors.income : colors.expense },
-            ]}
-          >
-            Net: {totalFilteredAmount >= 0 ? '+' : ''}{formatAmount(totalFilteredAmount)}
-          </Text>
+        <View style={styles.summaryContainer}>
+          <View style={styles.summaryBar}>
+            <View style={styles.summaryCountGroup}>
+              <Ionicons name="receipt-outline" size={14} color={colors.textMuted} />
+              <Text style={styles.summaryCount}>
+                {filteredTransactions.length} transaction{filteredTransactions.length !== 1 ? 's' : ''}
+              </Text>
+            </View>
+            <Text
+              style={[
+                styles.summaryTotal,
+                { color: totalFilteredAmount >= 0 ? colors.income : colors.expense },
+              ]}
+            >
+              Net: {totalFilteredAmount >= 0 ? '+' : ''}{formatAmount(totalFilteredAmount)}
+            </Text>
+          </View>
         </View>
       ) : null}
 
@@ -254,16 +265,21 @@ export default function TransactionsScreen() {
   );
 }
 
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.xs,
     paddingBottom: Spacing.sm,
+  },
+  headerTextGroup: {
+    flex: 1,
   },
   title: {
     fontSize: FontSize['2xl'],
@@ -276,18 +292,29 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 2,
   },
+  headerActionButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    ...Shadows.sm,
+  },
   searchContainer: {
     paddingHorizontal: Spacing.xl,
-    marginTop: Spacing.sm,
+    marginTop: Spacing.xs,
     marginBottom: Spacing.sm,
   },
   searchWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.card,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.lg,
     paddingHorizontal: Spacing.md,
-    height: 44,
+    height: 46,
     borderWidth: 1,
     borderColor: colors.borderLight,
     ...Shadows.sm,
@@ -305,44 +332,60 @@ const styles = StyleSheet.create({
       } as any,
     }),
   },
+  filterContainer: {
+    paddingHorizontal: Spacing.xl,
+    marginBottom: Spacing.sm,
+  },
   filterRow: {
     flexDirection: 'row',
-    paddingHorizontal: Spacing.xl,
-    marginVertical: Spacing.sm,
-    gap: Spacing.sm,
-  },
-  filterTab: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.full,
     backgroundColor: colors.card,
+    borderRadius: BorderRadius.lg,
+    padding: 4,
     borderWidth: 1,
     borderColor: colors.borderLight,
     ...Shadows.sm,
   },
+  filterTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+  },
   filterTabActive: {
     backgroundColor: colors.primary,
-    borderColor: colors.primary,
   },
   filterTabText: {
     fontSize: FontSize.xs,
-    fontWeight: FontWeight.medium,
+    fontWeight: FontWeight.semibold,
     color: colors.textSecondary,
   },
   filterTabTextActive: {
     color: '#FFFFFF',
     fontWeight: FontWeight.bold,
   },
+  summaryContainer: {
+    paddingHorizontal: Spacing.xl,
+    marginBottom: Spacing.sm,
+  },
   summaryBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.xs,
-    marginBottom: Spacing.xs,
+    backgroundColor: colors.card,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    ...Shadows.sm,
+  },
+  summaryCountGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   summaryCount: {
     fontSize: FontSize.xs,

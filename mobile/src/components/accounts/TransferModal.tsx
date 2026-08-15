@@ -105,13 +105,16 @@ export function TransferModal({ visible, onClose, onSuccess }: TransferModalProp
     >
       <View style={styles.backdrop}>
         <View style={styles.sheetContainer}>
-          {/* Header */}
+          {/* Top Handle Pill */}
+          <View style={styles.handlePill} />
+
+          {/* Unified Modal Header */}
           <View style={styles.header}>
-            <View>
+            <View style={styles.headerTextGroup}>
               <Text style={styles.title}>Transfer Funds</Text>
               <Text style={styles.subtitle}>Move money between your wallets / accounts</Text>
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn} activeOpacity={0.7}>
               <Ionicons name="close" size={20} color={colors.textPrimary} />
             </TouchableOpacity>
           </View>
@@ -197,6 +200,7 @@ export function TransferModal({ visible, onClose, onSuccess }: TransferModalProp
               style={styles.cancelBtn}
               onPress={onClose}
               disabled={loading}
+              activeOpacity={0.7}
             >
               <Text style={styles.cancelText}>Cancel</Text>
             </TouchableOpacity>
@@ -204,6 +208,7 @@ export function TransferModal({ visible, onClose, onSuccess }: TransferModalProp
               style={[styles.saveBtn, loading && { opacity: 0.7 }]}
               onPress={handleTransfer}
               disabled={loading}
+              activeOpacity={0.8}
             >
               {loading ? (
                 <ActivityIndicator color="#fff" size="small" />
@@ -221,17 +226,25 @@ export function TransferModal({ visible, onClose, onSuccess }: TransferModalProp
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: colors.overlay,
     justifyContent: 'flex-end',
   },
   sheetContainer: {
     backgroundColor: colors.card,
-    borderTopLeftRadius: BorderRadius.xl,
-    borderTopRightRadius: BorderRadius.xl,
-    paddingTop: Spacing.lg,
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Platform.OS === 'ios' ? Spacing['2xl'] : Spacing.lg,
+    borderTopLeftRadius: BorderRadius['2xl'],
+    borderTopRightRadius: BorderRadius['2xl'],
+    paddingTop: Spacing.sm,
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: Platform.OS === 'ios' ? Spacing['2xl'] : Spacing.xl,
     maxHeight: '85%',
+  },
+  handlePill: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.border,
+    alignSelf: 'center',
+    marginBottom: Spacing.sm,
   },
   header: {
     flexDirection: 'row',
@@ -239,14 +252,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing.md,
   },
+  headerTextGroup: {
+    flex: 1,
+  },
   title: {
     fontSize: FontSize.lg,
     fontWeight: FontWeight.bold,
     color: colors.textPrimary,
+    letterSpacing: -0.3,
   },
   subtitle: {
     fontSize: FontSize.xs,
-    color: colors.textMuted,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   closeBtn: {
@@ -256,22 +273,24 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.borderLight,
   },
   fieldLabel: {
     fontSize: FontSize['2xs'],
     fontWeight: FontWeight.bold,
     color: colors.textMuted,
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
     marginTop: Spacing.md,
     marginBottom: Spacing.xs,
   },
   amountInput: {
     backgroundColor: colors.background,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.lg,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderLight,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.sm + 2,
     fontSize: FontSize['2xl'],
     fontWeight: FontWeight.bold,
     color: colors.primary,
@@ -291,7 +310,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.md,
-    backgroundColor: colors.cardMuted,
+    backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.borderLight,
     marginRight: Spacing.sm,
@@ -316,21 +335,21 @@ const styles = StyleSheet.create({
   },
   arrowRow: {
     alignItems: 'center',
-    marginVertical: 4,
+    marginVertical: 6,
   },
   arrowCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: colors.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
   },
   input: {
     backgroundColor: colors.background,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.lg,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderLight,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm + 2,
     fontSize: FontSize.sm,
@@ -349,7 +368,7 @@ const styles = StyleSheet.create({
   },
   cancelBtn: {
     flex: 1,
-    height: 46,
+    height: 48,
     borderRadius: BorderRadius.lg,
     backgroundColor: colors.background,
     borderWidth: 1,
@@ -364,7 +383,7 @@ const styles = StyleSheet.create({
   },
   saveBtn: {
     flex: 1.5,
-    height: 46,
+    height: 48,
     borderRadius: BorderRadius.lg,
     backgroundColor: colors.primary,
     justifyContent: 'center',

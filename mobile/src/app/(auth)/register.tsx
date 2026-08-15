@@ -37,6 +37,10 @@ export default function RegisterScreen() {
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState('');
 
+  const emailInputRef = React.useRef<any>(null);
+  const passwordInputRef = React.useRef<any>(null);
+  const confirmPasswordInputRef = React.useRef<any>(null);
+
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
 
@@ -139,10 +143,14 @@ export default function RegisterScreen() {
             autoCapitalize="words"
             autoComplete="name"
             textContentType="name"
+            returnKeyType="next"
+            onSubmitEditing={() => emailInputRef.current?.focus()}
+            blurOnSubmit={false}
             leftIcon={<Ionicons name="person-outline" size={18} color={colors.textSecondary} />}
           />
 
           <PocksyInput
+            ref={emailInputRef}
             label="EMAIL ADDRESS"
             placeholder="name@example.com"
             value={email}
@@ -155,10 +163,14 @@ export default function RegisterScreen() {
             autoCapitalize="none"
             autoComplete="email"
             textContentType="emailAddress"
+            returnKeyType="next"
+            onSubmitEditing={() => passwordInputRef.current?.focus()}
+            blurOnSubmit={false}
             leftIcon={<Ionicons name="mail-outline" size={18} color={colors.textSecondary} />}
           />
 
           <PocksyInput
+            ref={passwordInputRef}
             label="PASSWORD"
             placeholder="Minimum 8 characters"
             value={password}
@@ -170,6 +182,9 @@ export default function RegisterScreen() {
             secureTextEntry={!showPassword}
             autoComplete="new-password"
             textContentType="newPassword"
+            returnKeyType="next"
+            onSubmitEditing={() => confirmPasswordInputRef.current?.focus()}
+            blurOnSubmit={false}
             leftIcon={<Ionicons name="lock-closed-outline" size={18} color={colors.textSecondary} />}
             rightIcon={
               <Ionicons
@@ -182,6 +197,7 @@ export default function RegisterScreen() {
           />
 
           <PocksyInput
+            ref={confirmPasswordInputRef}
             label="CONFIRM PASSWORD"
             placeholder="Re-enter your password"
             value={confirmPassword}
@@ -192,6 +208,8 @@ export default function RegisterScreen() {
             error={errors.confirmPassword}
             secureTextEntry={!showPassword}
             textContentType="newPassword"
+            returnKeyType="go"
+            onSubmitEditing={handleRegister}
             leftIcon={<Ionicons name="shield-checkmark-outline" size={18} color={colors.textSecondary} />}
           />
 
@@ -200,7 +218,7 @@ export default function RegisterScreen() {
               title="Create Account"
               onPress={handleRegister}
               loading={loading}
-              icon={<Ionicons name="arrow-forward" size={18} color="#FFFFFF" />}
+              icon={<Ionicons name="checkmark-circle-outline" size={18} color="#FFFFFF" />}
             />
           </View>
         </View>

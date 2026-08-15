@@ -95,9 +95,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const user = await authService.getMe();
       set({ user });
-    } catch {
-      // Token might be invalid, log out
-      await get().logout();
+    } catch (err: any) {
+      if (err?.statusCode === 401) {
+        // Token is truly expired or invalid
+        await get().logout();
+      }
     }
   },
 
@@ -133,22 +135,36 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   loadPersistedState: async () => {
     try {
-      // Clear token and reset onboarding flag so initial launch starts on Onboarding screen
-      await deleteToken();
-      await AsyncStorage.removeItem(ONBOARDING_KEY);
-      set({
-        token: null,
-        user: null,
-        isAuthenticated: false,
-        hasSeenOnboarding: false,
-        isLoading: false,
-      });
+      const [token, hasSeenOnboardingStr] = await Promise.all([
+        getToken(),
+        AsyncStorage.getItem(ONBOARDING_KEY),
+      ]);
+
+      const hasSeenOnboarding = hasSeenOnboardingStr === 'true';
+
+      if (token) {
+        set({
+          token,
+          isAuthenticated: true,
+          hasSeenOnboarding: true,
+          isLoading: false,
+        });
+        // Refresh profile in background without blocking screen
+        get().fetchUser().catch(() => {});
+      } else {
+        set({
+          token: null,
+          user: null,
+          isAuthenticated: false,
+          hasSeenOnboarding,
+          isLoading: false,
+        });
+      }
     } catch {
       set({
         token: null,
         user: null,
         isAuthenticated: false,
-        hasSeenOnboarding: false,
         isLoading: false,
       });
     }
