@@ -182,8 +182,8 @@ export default function HomeScreen() {
             accessibilityRole="button"
             accessibilityLabel="View Insights"
           >
-            <View style={[styles.actionIconCircle, { backgroundColor: '#F1F5F9' }]}>
-              <Feather name="pie-chart" size={19} color="#475569" />
+            <View style={[styles.actionIconCircle, { backgroundColor: colors.cardMuted }]}>
+              <Feather name="pie-chart" size={19} color={colors.primary} />
             </View>
             <Text style={styles.actionLabel}>Insights</Text>
           </TouchableOpacity>

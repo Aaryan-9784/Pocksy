@@ -5,7 +5,9 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { FontWeight } from '@/constants/theme';
+import { Colors, FontWeight } from '@/constants/theme';
+
+const colors = Colors.light;
 
 export interface AvatarProps {
   name?: string;
@@ -29,7 +31,7 @@ export function Avatar({
   imageUrl,
   size = 44,
   showOnline = false,
-  onlineColor = '#10B981',
+  onlineColor = colors.success,
 }: AvatarProps) {
   // Ring offset calculation for outer ring & inner circle
   const ringPadding = Math.max(3, Math.round(size * 0.07));
@@ -74,7 +76,7 @@ export function Avatar({
           />
         ) : (
           <LinearGradient
-            colors={['#7E1D2E', '#52131E', '#3D0D15']}
+            colors={colors.gradientPrimary}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={[
@@ -132,11 +134,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
-    borderColor: '#E8DFE2',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.border,
+    backgroundColor: colors.card,
     ...Platform.select({
       ios: {
-        shadowColor: '#1E1719',
+        shadowColor: colors.textPrimary,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.06,
         shadowRadius: 3,
@@ -148,7 +150,7 @@ const styles = StyleSheet.create({
         boxShadow: '0px 1px 4px rgba(30, 23, 25, 0.06)',
       } as any,
       default: {
-        shadowColor: '#1E1719',
+        shadowColor: colors.textPrimary,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.06,
         shadowRadius: 3,

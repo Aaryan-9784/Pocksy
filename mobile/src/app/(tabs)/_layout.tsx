@@ -27,7 +27,7 @@ function TabIcon({ iconFocused, iconOutline, label, focused }: TabIconProps) {
       <Ionicons
         name={focused ? iconFocused : iconOutline}
         size={23}
-        color={focused ? colors.primary : '#64748B'}
+        color={focused ? colors.primary : colors.textMuted}
       />
       <Text
         style={[
@@ -61,7 +61,7 @@ function CustomAddButton(props: any) {
       accessibilityLabel="Add transaction"
     >
       <LinearGradient
-        colors={['#7E1D2E', '#52131E', '#3D0D15']}
+        colors={colors.gradientPrimary}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={tabStyles.addButtonSquare}
@@ -82,7 +82,7 @@ export default function TabLayout() {
         headerShown: false,
         tabBarStyle: {
           backgroundColor: colors.white,
-          borderTopColor: '#EEF2F6',
+          borderTopColor: colors.borderLight,
           borderTopWidth: 1,
           height: 60 + bottomPadding,
           paddingTop: 6,
@@ -91,7 +91,7 @@ export default function TabLayout() {
         },
         tabBarShowLabel: false,
         tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: '#64748B',
+        tabBarInactiveTintColor: colors.textMuted,
       }}
     >
       <Tabs.Screen
@@ -169,7 +169,7 @@ const tabStyles = StyleSheet.create({
     letterSpacing: -0.2,
   },
   labelInactive: {
-    color: '#64748B',
+    color: colors.textMuted,
     fontWeight: FontWeight.medium,
   },
   labelFocused: {

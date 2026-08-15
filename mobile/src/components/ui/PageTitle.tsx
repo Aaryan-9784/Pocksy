@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, type ViewStyle } from 'react-native';
 import { Colors, FontSize, FontWeight, Spacing } from '@/constants/theme';
 
 const colors = Colors.light;
@@ -13,11 +13,20 @@ export interface PageTitleProps {
   subtitle?: string;
   badge?: string;
   rightElement?: React.ReactNode;
+  style?: ViewStyle;
+  noPaddingHorizontal?: boolean;
 }
 
-export function PageTitle({ title, subtitle, badge, rightElement }: PageTitleProps) {
+export function PageTitle({
+  title,
+  subtitle,
+  badge,
+  rightElement,
+  style,
+  noPaddingHorizontal = false,
+}: PageTitleProps) {
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, noPaddingHorizontal && styles.noPaddingHorizontal, style]}>
       <View style={styles.topRow}>
         <View style={styles.titleGroup}>
           <View style={styles.titleWithBadge}>
@@ -48,6 +57,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.md,
     paddingBottom: Spacing.sm,
+  },
+  noPaddingHorizontal: {
+    paddingHorizontal: 0,
   },
   topRow: {
     flexDirection: 'row',

@@ -425,15 +425,15 @@ export default function ProfileScreen() {
         />
         <MenuItem
           icon="lock-closed-outline"
-          iconColor="#64748B"
-          iconBg="#F1F5F9"
+          iconColor={colors.textSecondary}
+          iconBg={colors.cardMuted}
           label="Privacy Policy"
           onPress={() => Alert.alert('Privacy Policy', 'Your financial records are encrypted and strictly private.')}
         />
         <MenuItem
           icon="information-circle-outline"
-          iconColor="#64748B"
-          iconBg="#F1F5F9"
+          iconColor={colors.textSecondary}
+          iconBg={colors.cardMuted}
           label="Version"
           value="1.0.0 (Gold)"
           isLast

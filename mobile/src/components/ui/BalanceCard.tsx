@@ -5,7 +5,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Colors, BorderRadius, FontSize, FontWeight, Spacing, Shadows } from '@/constants/theme';
 import { formatAmount } from '@/constants/currency';
@@ -77,9 +77,14 @@ export function BalanceCard({ balance, income, expenses }: BalanceCardProps) {
         <View style={styles.statRow}>
           {/* Income Item */}
           <View style={styles.statItem}>
-            <View style={[styles.statIconBadge, { backgroundColor: 'rgba(16, 185, 129, 0.25)' }]}>
-              <Ionicons name="arrow-down" size={13} color="#34D399" />
-            </View>
+            <LinearGradient
+              colors={['#10B981', '#047857']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.inflowBadge}
+            >
+              <Feather name="arrow-down-left" size={16} color="#FFFFFF" />
+            </LinearGradient>
             <View style={styles.statTextGroup}>
               <Text style={styles.statLabel}>INFLOW</Text>
               <Text style={styles.statValue}>
@@ -92,9 +97,14 @@ export function BalanceCard({ balance, income, expenses }: BalanceCardProps) {
 
           {/* Expenses Item */}
           <View style={styles.statItem}>
-            <View style={[styles.statIconBadge, { backgroundColor: 'rgba(239, 68, 68, 0.25)' }]}>
-              <Ionicons name="arrow-up" size={13} color="#F87171" />
-            </View>
+            <LinearGradient
+              colors={['#EF4444', '#B91C1C']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.outflowBadge}
+            >
+              <Feather name="arrow-up-right" size={16} color="#FFFFFF" />
+            </LinearGradient>
             <View style={styles.statTextGroup}>
               <Text style={styles.statLabel}>OUTFLOW</Text>
               <Text style={styles.statValue}>
@@ -213,12 +223,53 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.sm,
   },
-  statIconBadge: {
-    width: 30,
-    height: 30,
+  inflowBadge: {
+    width: 32,
+    height: 32,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#10B981',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.4,
+        shadowRadius: 5,
+      },
+      android: {
+        elevation: 3,
+      },
+      web: {
+        boxShadow: '0px 2px 8px rgba(16, 185, 129, 0.35)',
+      } as any,
+      default: {},
+    }),
+  },
+  outflowBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#EF4444',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.4,
+        shadowRadius: 5,
+      },
+      android: {
+        elevation: 3,
+      },
+      web: {
+        boxShadow: '0px 2px 8px rgba(239, 68, 68, 0.35)',
+      } as any,
+      default: {},
+    }),
   },
   statTextGroup: {
     flex: 1,

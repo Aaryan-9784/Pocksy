@@ -21,7 +21,7 @@ export const EXPENSE_CATEGORIES: CategoryItem[] = [
   { id: 'health', label: 'Health', icon: '💊', vectorIcon: 'medkit', color: '#DC2626', bgColor: '#FEE2E2' },
   { id: 'rent', label: 'Rent', icon: '🏠', vectorIcon: 'home', color: '#7C3AED', bgColor: '#EDE9FE' },
   { id: 'subscriptions', label: 'Subscriptions', icon: '🔄', vectorIcon: 'repeat', color: '#0D9488', bgColor: '#CCFBF1' },
-  { id: 'other', label: 'Other', icon: '📌', vectorIcon: 'ellipsis-horizontal-circle', color: '#64748B', bgColor: '#F1F5F9' },
+  { id: 'other', label: 'Other', icon: '📌', vectorIcon: 'ellipsis-horizontal-circle', color: '#8B7D82', bgColor: '#F4ECEF' },
 ];
 
 export const INCOME_SOURCES: CategoryItem[] = [
@@ -30,7 +30,7 @@ export const INCOME_SOURCES: CategoryItem[] = [
   { id: 'business', label: 'Business', icon: '🏢', vectorIcon: 'business', color: '#7C3AED', bgColor: '#EDE9FE' },
   { id: 'investment', label: 'Investment', icon: '📈', vectorIcon: 'trending-up', color: '#EA580C', bgColor: '#FFEDD5' },
   { id: 'gift', label: 'Gift', icon: '🎁', vectorIcon: 'gift', color: '#DC2626', bgColor: '#FEE2E2' },
-  { id: 'other', label: 'Other', icon: '📌', vectorIcon: 'add-circle', color: '#64748B', bgColor: '#F1F5F9' },
+  { id: 'other', label: 'Other', icon: '📌', vectorIcon: 'add-circle', color: '#8B7D82', bgColor: '#F4ECEF' },
 ];
 
 export interface PaymentMethodItem {

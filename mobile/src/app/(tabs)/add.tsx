@@ -1,3 +1,8 @@
+/**
+ * Pocksy New Transaction Screen
+ * Luxury Financial Logging Experience aligned with Pocksy Signature Theme
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -13,7 +18,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows } from '@/constants/theme';
@@ -28,7 +34,7 @@ import type { TransactionType } from '@/types';
 
 const colors = Colors.light;
 
-const PRESET_AMOUNTS = [100, 200, 500, 1000, 2000, 5000];
+const PRESET_AMOUNTS = [100, 500, 1000, 2000, 5000];
 
 export default function AddScreen() {
   const insets = useSafeAreaInsets();
@@ -96,7 +102,6 @@ export default function AddScreen() {
     }
   };
 
-
   const categories = type === 'expense' ? EXPENSE_CATEGORIES : INCOME_SOURCES;
 
   const handleTypeToggle = (newType: TransactionType) => {
@@ -157,7 +162,9 @@ export default function AddScreen() {
         } catch {}
       }
       return;
-    }    setLoading(true);
+    }
+
+    setLoading(true);
     try {
       await addTransaction({
         type,
@@ -183,11 +190,11 @@ export default function AddScreen() {
       }
 
       Alert.alert(
-        'Transaction Added ✨',
+        'Transaction Saved ✨',
         `${type === 'income' ? 'Income' : 'Expense'} of ${currencySymbol}${amount} logged successfully.`,
         [
           {
-            text: 'Done',
+            text: 'View Dashboard',
             onPress: () => router.push('/(tabs)'),
           },
           {
@@ -203,13 +210,14 @@ export default function AddScreen() {
           },
         ]
       );
-
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Failed to add transaction');
     } finally {
       setLoading(false);
     }
   };
+
+  const isExpense = type === 'expense';
 
   return (
     <View style={styles.container}>
@@ -229,279 +237,353 @@ export default function AddScreen() {
           {/* Page Title Block */}
           <PageTitle
             title="New Transaction"
-            subtitle="Log your income or expense quickly"
+            subtitle={isExpense ? 'Record money spent or bills paid' : 'Record income, freelance, or gifts'}
+            badge={isExpense ? 'OUTFLOW' : 'INFLOW'}
+            noPaddingHorizontal={true}
           />
 
-        {/* Type Switcher */}
-        <View style={styles.typeSwitcher}>
-          <TouchableOpacity
-            style={[
-              styles.typeTab,
-              type === 'expense' && styles.typeTabExpenseActive,
-            ]}
-            onPress={() => handleTypeToggle('expense')}
-            activeOpacity={0.8}
-          >
-            <Ionicons
-              name="arrow-up-circle"
-              size={18}
-              color={type === 'expense' ? '#FFFFFF' : colors.expense}
-            />
-            <Text
-              style={[
-                styles.typeTabText,
-                type === 'expense' && styles.typeTabTextActive,
-              ]}
+          {/* Luxury Capsule Type Switcher */}
+          <View style={styles.typeSwitcherCard}>
+            <TouchableOpacity
+              style={[styles.typeTab, isExpense && styles.typeTabExpenseActive]}
+              onPress={() => handleTypeToggle('expense')}
+              activeOpacity={0.8}
             >
-              Expense
-            </Text>
-          </TouchableOpacity>
+              {isExpense ? (
+                <LinearGradient
+                  colors={['#7E1D2E', '#52131E']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.typeTabGradient}
+                >
+                  <View style={styles.iconCircleWhite}>
+                    <Feather name="arrow-up-right" size={13} color="#EF4444" />
+                  </View>
+                  <Text style={styles.typeTabTextActive}>Expense</Text>
+                </LinearGradient>
+              ) : (
+                <View style={styles.typeTabInner}>
+                  <View style={styles.iconCircleMuted}>
+                    <Feather name="arrow-up-right" size={13} color={colors.textSecondary} />
+                  </View>
+                  <Text style={styles.typeTabText}>Expense</Text>
+                </View>
+              )}
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[
-              styles.typeTab,
-              type === 'income' && styles.typeTabIncomeActive,
-            ]}
-            onPress={() => handleTypeToggle('income')}
-            activeOpacity={0.8}
-          >
-            <Ionicons
-              name="arrow-down-circle"
-              size={18}
-              color={type === 'income' ? '#FFFFFF' : colors.income}
-            />
-            <Text
-              style={[
-                styles.typeTabText,
-                type === 'income' && styles.typeTabTextActive,
-              ]}
+            <TouchableOpacity
+              style={[styles.typeTab, !isExpense && styles.typeTabIncomeActive]}
+              onPress={() => handleTypeToggle('income')}
+              activeOpacity={0.8}
             >
-              Income
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Amount Input Block */}
-        <View style={styles.amountCard}>
-          <Text style={styles.amountCardLabel}>ENTER AMOUNT</Text>
-          <View style={styles.amountInputRow}>
-            <Text style={styles.currencySymbol}>{currencySymbol}</Text>
-            <TextInput
-              style={styles.amountInput}
-              value={amount}
-              onChangeText={(text) => {
-                const numeric = text.replace(/[^0-9.]/g, '');
-                setAmount(numeric);
-                setErrors((prev) => ({ ...prev, amount: '' }));
-              }}
-              placeholder="0.00"
-              placeholderTextColor={colors.textMuted}
-              keyboardType="decimal-pad"
-              autoFocus
-            />
+              {!isExpense ? (
+                <LinearGradient
+                  colors={['#059669', '#047857']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.typeTabGradient}
+                >
+                  <View style={styles.iconCircleWhite}>
+                    <Feather name="arrow-down-left" size={13} color="#10B981" />
+                  </View>
+                  <Text style={styles.typeTabTextActive}>Income</Text>
+                </LinearGradient>
+              ) : (
+                <View style={styles.typeTabInner}>
+                  <View style={styles.iconCircleMuted}>
+                    <Feather name="arrow-down-left" size={13} color={colors.textSecondary} />
+                  </View>
+                  <Text style={styles.typeTabText}>Income</Text>
+                </View>
+              )}
+            </TouchableOpacity>
           </View>
-          {errors.amount ? (
-            <Text style={styles.amountErrorText}>{errors.amount}</Text>
-          ) : null}
 
-          {/* Quick Presets */}
-          <View style={styles.presetChipsRow}>
-            {PRESET_AMOUNTS.map((val) => (
-              <TouchableOpacity
-                key={val}
-                style={styles.presetChip}
-                onPress={() => handlePresetSelect(val)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.presetChipText}>+{val}</Text>
-              </TouchableOpacity>
-            ))}
+          {/* Signature Luxury Hero Amount Card */}
+          <View style={styles.amountCardShadowWrapper}>
+            <LinearGradient
+              colors={
+                isExpense
+                  ? ['#721B2A', '#4A111C', '#280A10']
+                  : ['#064E3B', '#063B2F', '#022119']
+              }
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.amountCard}
+            >
+              {/* Background ambient lighting */}
+              <View style={styles.glowCircle1} />
+              <View style={styles.glowCircle2} />
+
+              {/* Header Pill */}
+              <View style={styles.amountHeaderPill}>
+                <LinearGradient
+                  colors={isExpense ? ['#EF4444', '#B91C1C'] : ['#10B981', '#047857']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.pillIconCircle}
+                >
+                  <Feather
+                    name={isExpense ? 'arrow-up-right' : 'arrow-down-left'}
+                    size={11}
+                    color="#FFFFFF"
+                  />
+                </LinearGradient>
+                <Text style={styles.amountPillText}>
+                  {isExpense ? 'ENTER EXPENSE AMOUNT' : 'ENTER INCOME AMOUNT'}
+                </Text>
+              </View>
+
+              {/* Large Amount Input */}
+              <View style={styles.amountInputRow}>
+                <Text style={styles.currencySymbol}>{currencySymbol}</Text>
+                <TextInput
+                  style={styles.amountInput}
+                  value={amount}
+                  onChangeText={(text) => {
+                    const numeric = text.replace(/[^0-9.]/g, '');
+                    setAmount(numeric);
+                    setErrors((prev) => ({ ...prev, amount: '' }));
+                  }}
+                  placeholder="0.00"
+                  placeholderTextColor="rgba(255, 255, 255, 0.4)"
+                  keyboardType="decimal-pad"
+                  selectionColor="#FFFFFF"
+                  autoFocus
+                />
+              </View>
+
+              {errors.amount ? (
+                <View style={styles.amountErrorBanner}>
+                  <Ionicons name="alert-circle" size={14} color="#FECACA" />
+                  <Text style={styles.amountErrorText}>{errors.amount}</Text>
+                </View>
+              ) : null}
+
+              {/* Quick Glassmorphic Preset Chips */}
+              <View style={styles.presetChipsRow}>
+                {PRESET_AMOUNTS.map((val) => (
+                  <TouchableOpacity
+                    key={val}
+                    style={styles.presetChip}
+                    onPress={() => handlePresetSelect(val)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.presetChipText}>+{val.toLocaleString()}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </LinearGradient>
           </View>
-        </View>
 
-        {/* Account / Wallet Selector */}
-        {accounts.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
-              {type === 'expense' ? 'PAY FROM ACCOUNT / WALLET' : 'DEPOSIT TO ACCOUNT'}
-            </Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.accountSelectorRow}>
-              {accounts.map((acc) => {
-                const isSelected = selectedAccountId === acc._id;
+          {/* Group 1: CATEGORY SELECTION */}
+          <Text style={styles.groupLabel}>SELECT CATEGORY</Text>
+          <View style={styles.sectionCard}>
+            {errors.category ? (
+              <View style={styles.categoryErrorBanner}>
+                <Ionicons name="alert-circle" size={14} color={colors.danger} />
+                <Text style={styles.categoryErrorText}>{errors.category}</Text>
+              </View>
+            ) : null}
+
+            <View style={styles.categoryGrid}>
+              {categories.map((cat) => {
+                const isSelected = category === cat.id;
                 return (
                   <TouchableOpacity
-                    key={acc._id}
+                    key={cat.id}
                     style={[
-                      styles.accountChip,
-                      isSelected && styles.accountChipSelected,
-                      { borderLeftColor: acc.color || colors.primary },
+                      styles.categoryTile,
+                      isSelected && {
+                        borderColor: cat.color,
+                        backgroundColor: `${cat.color}10`,
+                        borderWidth: 1.5,
+                      },
                     ]}
-                    onPress={() => setSelectedAccountId(acc._id)}
+                    onPress={() => handleCategorySelect(cat.id)}
                     activeOpacity={0.75}
                   >
-                    <Text style={[styles.accountChipName, isSelected && styles.accountChipTextActive]}>
-                      {acc.name}
+                    <CategoryIcon categoryId={cat.id} size={42} />
+                    <Text
+                      style={[
+                        styles.categoryTileLabel,
+                        isSelected && { color: cat.color, fontWeight: FontWeight.bold },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {cat.label}
                     </Text>
-                    <Text style={[styles.accountChipBal, isSelected && styles.accountChipTextActive]}>
-                      {formatAmount(acc.balance)}
-                    </Text>
+                    {isSelected && (
+                      <View style={[styles.selectedCheckBadge, { backgroundColor: cat.color }]}>
+                        <Ionicons name="checkmark" size={9} color="#FFFFFF" />
+                      </View>
+                    )}
                   </TouchableOpacity>
                 );
               })}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* Category Grid */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>CATEGORY</Text>
-            {errors.category ? (
-              <Text style={styles.sectionError}>{errors.category}</Text>
-            ) : null}
-          </View>
-
-          <View style={styles.categoryGrid}>
-            {categories.map((cat) => {
-              const isSelected = category === cat.id;
-              return (
-                <TouchableOpacity
-                  key={cat.id}
-                  style={[
-                    styles.categoryCard,
-                    isSelected && { borderColor: cat.color, backgroundColor: colors.white },
-                    isSelected && styles.categoryCardSelected,
-                  ]}
-                  onPress={() => handleCategorySelect(cat.id)}
-                  activeOpacity={0.75}
-                >
-                  <CategoryIcon categoryId={cat.id} size={42} />
-                  <Text
-                    style={[
-                      styles.categoryName,
-                      isSelected && { color: cat.color, fontWeight: FontWeight.bold },
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {cat.label}
-                  </Text>
-                  {isSelected && (
-                    <View style={[styles.selectedCheck, { backgroundColor: cat.color }]}>
-                      <Ionicons name="checkmark" size={10} color="#FFFFFF" />
-                    </View>
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* Description Input */}
-        <View style={styles.section}>
-          <PocksyInput
-            label="DESCRIPTION"
-            placeholder={type === 'expense' ? 'e.g. Grocery store, Uber ride' : 'e.g. Monthly salary, Freelance project'}
-            value={description}
-            onChangeText={(text) => {
-              setDescription(text);
-              setErrors((prev) => ({ ...prev, description: '' }));
-            }}
-            error={errors.description}
-            leftIcon={<Ionicons name="create-outline" size={18} color={colors.textSecondary} />}
-          />
-        </View>
-
-        {/* Payment Method Selector */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>PAYMENT METHOD</Text>
-          <View style={styles.paymentMethodRow}>
-            {PAYMENT_METHODS.map((pm) => {
-              const isSelected = paymentMethod === pm.id;
-              return (
-                <TouchableOpacity
-                  key={pm.id}
-                  style={[
-                    styles.paymentChip,
-                    isSelected && styles.paymentChipActive,
-                  ]}
-                  onPress={() => {
-                    if (Platform.OS !== 'web') {
-                      try {
-                        Haptics.selectionAsync();
-                      } catch {}
-                    }
-                    setPaymentMethod(pm.id);
-                  }}
-                  activeOpacity={0.75}
-                >
-                  <Ionicons
-                    name={pm.vectorIcon as any}
-                    size={16}
-                    color={isSelected ? colors.primary : colors.textSecondary}
-                  />
-                  <Text
-                    style={[
-                      styles.paymentChipLabel,
-                      isSelected && styles.paymentChipLabelActive,
-                    ]}
-                  >
-                    {pm.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* Additional Notes */}
-        <View style={styles.section}>
-          <PocksyInput
-            label="NOTES (OPTIONAL)"
-            placeholder="Add any extra notes or tags..."
-            value={notes}
-            onChangeText={setNotes}
-            leftIcon={<Ionicons name="document-text-outline" size={18} color={colors.textSecondary} />}
-          />
-        </View>
-
-        {/* Receipt Attachment Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>RECEIPT / BILL ATTACHMENT (OPTIONAL)</Text>
-          {receiptImage ? (
-            <View style={styles.receiptPreviewBox}>
-              <Image source={{ uri: receiptImage }} style={styles.receiptImage} />
-              <TouchableOpacity
-                style={styles.removeReceiptBtn}
-                onPress={() => setReceiptImage(null)}
-              >
-                <Ionicons name="trash-outline" size={14} color="#ffffff" />
-                <Text style={styles.removeReceiptText}>Remove</Text>
-              </TouchableOpacity>
             </View>
-          ) : (
-            <TouchableOpacity
-              style={styles.attachReceiptBtn}
-              onPress={handlePickImage}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="camera-outline" size={20} color={colors.primary} />
-              <Text style={styles.attachReceiptText}>Upload / Scan Receipt Photo</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+          </View>
 
-        {/* Submit Button */}
-        <View style={styles.submitWrapper}>
-          <PocksyButton
-            title={`Add ${type === 'income' ? 'Income' : 'Expense'}`}
-            onPress={handleSubmit}
-            loading={loading}
-            icon={<Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />}
-          />
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
-  </View>
+          {/* Group 2: ACCOUNT & PAYMENT SOURCE */}
+          <Text style={styles.groupLabel}>ACCOUNT & PAYMENT</Text>
+          <View style={styles.sectionCard}>
+            {accounts.length > 0 && (
+              <View style={styles.subSection}>
+                <Text style={styles.subLabel}>
+                  {isExpense ? 'PAY FROM ACCOUNT' : 'DEPOSIT TO ACCOUNT'}
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.accountSelectorRow}
+                >
+                  {accounts.map((acc) => {
+                    const isSelected = selectedAccountId === acc._id;
+                    return (
+                      <TouchableOpacity
+                        key={acc._id}
+                        style={[
+                          styles.accountChip,
+                          isSelected && styles.accountChipSelected,
+                          { borderLeftColor: acc.color || colors.primary },
+                        ]}
+                        onPress={() => setSelectedAccountId(acc._id)}
+                        activeOpacity={0.75}
+                      >
+                        <Text
+                          style={[
+                            styles.accountChipName,
+                            isSelected && styles.accountChipTextActive,
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {acc.name}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.accountChipBal,
+                            isSelected && styles.accountChipTextActive,
+                          ]}
+                        >
+                          {formatAmount(acc.balance)}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            )}
+
+            <View style={styles.subSection}>
+              <Text style={styles.subLabel}>PAYMENT METHOD</Text>
+              <View style={styles.paymentMethodRow}>
+                {PAYMENT_METHODS.map((pm) => {
+                  const isSelected = paymentMethod === pm.id;
+                  return (
+                    <TouchableOpacity
+                      key={pm.id}
+                      style={[
+                        styles.paymentChip,
+                        isSelected && styles.paymentChipActive,
+                      ]}
+                      onPress={() => {
+                        if (Platform.OS !== 'web') {
+                          try {
+                            Haptics.selectionAsync();
+                          } catch {}
+                        }
+                        setPaymentMethod(pm.id);
+                      }}
+                      activeOpacity={0.75}
+                    >
+                      <Ionicons
+                        name={pm.vectorIcon as any}
+                        size={15}
+                        color={isSelected ? colors.primary : colors.textSecondary}
+                      />
+                      <Text
+                        style={[
+                          styles.paymentChipLabel,
+                          isSelected && styles.paymentChipLabelActive,
+                        ]}
+                      >
+                        {pm.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          </View>
+
+          {/* Group 3: TRANSACTION DETAILS */}
+          <Text style={styles.groupLabel}>TRANSACTION DETAILS</Text>
+          <View style={styles.sectionCard}>
+            <PocksyInput
+              label="DESCRIPTION"
+              placeholder={isExpense ? 'e.g. Grocery store, Starbucks, Uber' : 'e.g. Monthly salary, Freelance design'}
+              value={description}
+              onChangeText={(text) => {
+                setDescription(text);
+                setErrors((prev) => ({ ...prev, description: '' }));
+              }}
+              error={errors.description}
+              leftIcon={<Ionicons name="create-outline" size={18} color={colors.textSecondary} />}
+            />
+
+            <PocksyInput
+              label="NOTES (OPTIONAL)"
+              placeholder="Add tags, references, or reminders..."
+              value={notes}
+              onChangeText={setNotes}
+              leftIcon={<Ionicons name="document-text-outline" size={18} color={colors.textSecondary} />}
+              containerStyle={{ marginBottom: 0 }}
+            />
+          </View>
+
+          {/* Group 4: RECEIPT ATTACHMENT */}
+          <Text style={styles.groupLabel}>RECEIPT ATTACHMENT (OPTIONAL)</Text>
+          <View style={styles.sectionCard}>
+            {receiptImage ? (
+              <View style={styles.receiptPreviewBox}>
+                <Image source={{ uri: receiptImage }} style={styles.receiptImage} />
+                <TouchableOpacity
+                  style={styles.removeReceiptBtn}
+                  onPress={() => setReceiptImage(null)}
+                >
+                  <Ionicons name="trash-outline" size={14} color="#FFFFFF" />
+                  <Text style={styles.removeReceiptText}>Remove</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.attachReceiptBtn}
+                onPress={handlePickImage}
+                activeOpacity={0.8}
+              >
+                <View style={styles.attachIconCircle}>
+                  <Ionicons name="camera-outline" size={20} color={colors.primary} />
+                </View>
+                <View style={styles.attachTextGroup}>
+                  <Text style={styles.attachReceiptText}>Upload Receipt Photo</Text>
+                  <Text style={styles.attachReceiptSub}>Attach bill or invoice screenshot</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Submit Button */}
+          <View style={styles.submitWrapper}>
+            <PocksyButton
+              title={`Save ${isExpense ? 'Expense' : 'Income'}`}
+              onPress={handleSubmit}
+              loading={loading}
+              icon={<Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />}
+            />
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -519,62 +601,76 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: Spacing.xl,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: Spacing.xs,
-    paddingBottom: Spacing.md,
-  },
-  headerTextGroup: {
-    flex: 1,
-  },
-  title: {
-    fontSize: FontSize['2xl'],
-    fontWeight: FontWeight.bold,
-    color: colors.textPrimary,
-    letterSpacing: -0.5,
-  },
-  subtitle: {
+  groupLabel: {
     fontSize: FontSize.xs,
-    color: colors.textSecondary,
-    marginTop: 2,
+    fontWeight: FontWeight.bold,
+    color: colors.textMuted,
+    letterSpacing: 0.8,
+    marginBottom: Spacing.sm,
+    marginTop: Spacing.md,
+    paddingHorizontal: Spacing.xs,
   },
-  headerActionButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
+  sectionCard: {
     backgroundColor: colors.card,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.base,
     borderWidth: 1,
     borderColor: colors.borderLight,
+    marginBottom: Spacing.xs,
     ...Shadows.sm,
   },
-  typeSwitcher: {
+  typeSwitcherCard: {
     flexDirection: 'row',
     backgroundColor: colors.card,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.xl,
     padding: 4,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
     borderWidth: 1,
     borderColor: colors.borderLight,
     ...Shadows.sm,
   },
   typeTab: {
     flex: 1,
+    borderRadius: BorderRadius.lg,
+    overflow: 'hidden',
+  },
+  typeTabExpenseActive: {
+    ...Shadows.sm,
+  },
+  typeTabIncomeActive: {
+    ...Shadows.sm,
+  },
+  typeTabGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.md,
+    paddingVertical: 10,
+    borderRadius: BorderRadius.lg,
   },
-  typeTabExpenseActive: {
-    backgroundColor: colors.expense,
+  typeTabInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 10,
   },
-  typeTabIncomeActive: {
-    backgroundColor: colors.income,
+  iconCircleWhite: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadows.sm,
+  },
+  iconCircleMuted: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.cardMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   typeTabText: {
     fontSize: FontSize.sm,
@@ -582,25 +678,70 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   typeTabTextActive: {
-    color: '#FFFFFF',
+    fontSize: FontSize.sm,
     fontWeight: FontWeight.bold,
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
+  },
+  amountCardShadowWrapper: {
+    borderRadius: BorderRadius['2xl'],
+    marginBottom: Spacing.md,
+    ...Shadows.lg,
   },
   amountCard: {
-    backgroundColor: colors.card,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.xl,
+    borderRadius: BorderRadius['2xl'],
+    paddingVertical: Spacing.xl,
+    paddingHorizontal: Spacing.base,
     alignItems: 'center',
-    marginBottom: Spacing.xl,
+    position: 'relative',
+    overflow: 'hidden',
     borderWidth: 1,
-    borderColor: colors.borderLight,
-    ...Shadows.sm,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
-  amountCardLabel: {
-    fontSize: FontSize['2xs'],
-    color: colors.textMuted,
+  glowCircle1: {
+    position: 'absolute',
+    top: -50,
+    right: -30,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(232, 137, 154, 0.16)',
+  },
+  glowCircle2: {
+    position: 'absolute',
+    bottom: -60,
+    left: -40,
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+  },
+  amountHeaderPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+    marginBottom: Spacing.sm,
+  },
+  pillIconCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+  },
+  amountPillText: {
+    fontSize: 10,
     fontWeight: FontWeight.bold,
+    color: '#FFFFFF',
     letterSpacing: 0.8,
-    marginBottom: Spacing.xs,
   },
   amountInputRow: {
     flexDirection: 'row',
@@ -611,14 +752,14 @@ const styles = StyleSheet.create({
   currencySymbol: {
     fontSize: FontSize['3xl'],
     fontWeight: FontWeight.bold,
-    color: colors.primary,
+    color: 'rgba(255, 255, 255, 0.8)',
     marginRight: 6,
   },
   amountInput: {
-    fontSize: FontSize['4xl'],
+    fontSize: FontSize['5xl'] || 44,
     fontWeight: FontWeight.bold,
-    color: colors.textPrimary,
-    minWidth: 120,
+    color: '#FFFFFF',
+    minWidth: 140,
     textAlign: 'center',
     letterSpacing: -1,
     padding: 0,
@@ -629,10 +770,19 @@ const styles = StyleSheet.create({
       } as any,
     }),
   },
-  amountErrorText: {
-    color: colors.danger,
-    fontSize: FontSize.xs,
+  amountErrorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(239, 68, 68, 0.25)',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: BorderRadius.full,
     marginTop: Spacing.xs,
+  },
+  amountErrorText: {
+    color: '#FECACA',
+    fontSize: FontSize.xs,
     fontWeight: FontWeight.medium,
   },
   presetChipsRow: {
@@ -643,35 +793,28 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   presetChip: {
-    backgroundColor: colors.primaryLight,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
     paddingVertical: 5,
-    paddingHorizontal: 10,
+    paddingHorizontal: 11,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
   },
   presetChipText: {
     fontSize: FontSize.xs,
-    color: colors.primary,
-    fontWeight: FontWeight.semibold,
+    color: '#FFFFFF',
+    fontWeight: FontWeight.bold,
   },
-  section: {
-    marginBottom: Spacing.lg,
-  },
-  sectionHeaderRow: {
+  categoryErrorBanner: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.dangerLight,
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.md,
     marginBottom: Spacing.sm,
   },
-  sectionTitle: {
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.bold,
-    color: colors.textSecondary,
-    letterSpacing: 0.6,
-    marginBottom: Spacing.xs,
-  },
-  sectionError: {
+  categoryErrorText: {
     fontSize: FontSize.xs,
     color: colors.danger,
     fontWeight: FontWeight.medium,
@@ -679,58 +822,96 @@ const styles = StyleSheet.create({
   categoryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.sm,
+    gap: 8,
+    justifyContent: 'space-between',
   },
-  categoryCard: {
-    width: '30.5%',
-    backgroundColor: colors.card,
+  categoryTile: {
+    width: '31%',
+    backgroundColor: colors.offWhite,
     borderRadius: BorderRadius.lg,
     paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xs,
+    paddingHorizontal: 4,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.borderLight,
     position: 'relative',
-    ...Shadows.sm,
+    marginBottom: 4,
   },
-  categoryCardSelected: {
-    ...Shadows.md,
-  },
-  categoryName: {
+  categoryTileLabel: {
     fontSize: FontSize.xs,
     color: colors.textPrimary,
-    fontWeight: FontWeight.medium,
+    fontWeight: FontWeight.semibold,
     marginTop: 6,
     textAlign: 'center',
   },
-  selectedCheck: {
+  selectedCheckBadge: {
     position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 16,
-    height: 16,
+    top: 5,
+    right: 5,
+    width: 15,
+    height: 15,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  subSection: {
+    marginBottom: Spacing.md,
+  },
+  subLabel: {
+    fontSize: 10,
+    fontWeight: FontWeight.bold,
+    color: colors.textMuted,
+    letterSpacing: 0.6,
+    marginBottom: Spacing.xs,
+  },
+  accountSelectorRow: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+    paddingVertical: 2,
+  },
+  accountChip: {
+    backgroundColor: colors.offWhite,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    borderLeftWidth: 3.5,
+    minWidth: 110,
+  },
+  accountChipSelected: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
+  },
+  accountChipName: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.semibold,
+    color: colors.textPrimary,
+  },
+  accountChipBal: {
+    fontSize: 10,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  accountChipTextActive: {
+    color: colors.primary,
+  },
   paymentMethodRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.sm,
-    marginTop: Spacing['2xs'],
+    gap: Spacing.xs,
   },
   paymentChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingVertical: Spacing.sm,
+    paddingVertical: 7,
     paddingHorizontal: Spacing.md,
     borderRadius: BorderRadius.md,
-    backgroundColor: colors.card,
-    borderWidth: 1.5,
+    backgroundColor: colors.offWhite,
+    borderWidth: 1,
     borderColor: colors.borderLight,
-    ...Shadows.sm,
   },
   paymentChipActive: {
     borderColor: colors.primary,
@@ -745,64 +926,43 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: FontWeight.bold,
   },
-  accountSelectorRow: {
-    flexDirection: 'row',
-    marginTop: Spacing['2xs'],
-    marginBottom: Spacing.xs,
-  },
-  accountChip: {
-    backgroundColor: colors.card,
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderWidth: 1.5,
-    borderColor: colors.borderLight,
-    borderLeftWidth: 4,
-    marginRight: Spacing.sm,
-    minWidth: 110,
-    ...Shadows.sm,
-  },
-  accountChipSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primaryLight,
-  },
-  accountChipName: {
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.semibold,
-    color: colors.textPrimary,
-  },
-  accountChipBal: {
-    fontSize: FontSize['2xs'],
-    color: colors.textMuted,
-    marginTop: 2,
-  },
-  accountChipTextActive: {
-    color: colors.primary,
-  },
   attachReceiptBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: colors.card,
+    gap: 12,
+    backgroundColor: colors.offWhite,
     borderWidth: 1.5,
-    borderColor: colors.borderLight,
+    borderColor: colors.border,
     borderStyle: 'dashed',
     borderRadius: BorderRadius.lg,
-    paddingVertical: Spacing.md,
-    marginTop: Spacing['2xs'],
+    padding: Spacing.md,
+  },
+  attachIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  attachTextGroup: {
+    flex: 1,
   },
   attachReceiptText: {
-    fontSize: FontSize.xs,
+    fontSize: FontSize.sm,
     fontWeight: FontWeight.semibold,
-    color: colors.primary,
+    color: colors.textPrimary,
+  },
+  attachReceiptSub: {
+    fontSize: FontSize.xs,
+    color: colors.textMuted,
+    marginTop: 1,
   },
   receiptPreviewBox: {
     position: 'relative',
     borderRadius: BorderRadius.lg,
     overflow: 'hidden',
-    marginTop: Spacing['2xs'],
-    height: 160,
+    height: 150,
     backgroundColor: colors.cardMuted,
   },
   receiptImage: {
@@ -825,11 +985,10 @@ const styles = StyleSheet.create({
   removeReceiptText: {
     fontSize: 10,
     fontWeight: FontWeight.bold,
-    color: '#ffffff',
+    color: '#FFFFFF',
   },
   submitWrapper: {
-    marginTop: Spacing.md,
+    marginTop: Spacing.base,
     marginBottom: Spacing.xl,
   },
 });
-

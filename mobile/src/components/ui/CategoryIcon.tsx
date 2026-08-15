@@ -5,7 +5,7 @@
 import React from 'react';
 import { View, StyleSheet, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { BorderRadius } from '@/constants/theme';
+import { BorderRadius, Colors } from '@/constants/theme';
 import { getCategoryById } from '@/constants/categories';
 
 interface CategoryIconProps {
@@ -35,7 +35,7 @@ export function CategoryIcon({
           width: size,
           height: size,
           borderRadius,
-          backgroundColor: category?.bgColor || '#F1F5F9',
+          backgroundColor: category?.bgColor || Colors.light.cardMuted,
         },
       ]}
     >

@@ -111,8 +111,8 @@ export default function AnalyticsScreen() {
           label: cat?.label || key,
           icon: cat?.icon || '📌',
           vectorIcon: cat?.vectorIcon || 'pricetag-outline',
-          color: cat?.color || '#868E96',
-          bgColor: cat?.bgColor || '#F1F5F9',
+          color: cat?.color || colors.textSecondary,
+          bgColor: cat?.bgColor || colors.cardMuted,
           total: value.total,
           count: value.count,
           percentage: expTotal > 0 ? Math.round((value.total / expTotal) * 100) : 0,
@@ -129,8 +129,8 @@ export default function AnalyticsScreen() {
             label: cat?.label || key,
             icon: cat?.icon || '📌',
             vectorIcon: cat?.vectorIcon || 'pricetag-outline',
-            color: cat?.color || '#868E96',
-            bgColor: cat?.bgColor || '#F1F5F9',
+            color: cat?.color || colors.textSecondary,
+            bgColor: cat?.bgColor || colors.cardMuted,
             total: 0,
             count: 0,
             percentage: 0,
@@ -195,6 +195,7 @@ export default function AnalyticsScreen() {
         <PageTitle
           title="Insights & Budgets"
           subtitle="Smart overview of your cash flow & category limits"
+          noPaddingHorizontal={true}
         />
 
       {/* Period Selector Tabs */}
