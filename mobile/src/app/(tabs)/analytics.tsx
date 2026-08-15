@@ -1,9 +1,9 @@
 /**
- * Pocksy Analytics/Insights Screen
- * Shows category-wise spending breakdown
+ * Pocksy Analytics & Insights Screen
+ * High-fidelity category spending analytics, period filters, and cashflow comparison
  */
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,14 +11,17 @@ import {
   ScrollView,
   RefreshControl,
   TouchableOpacity,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows } from '@/constants/theme';
-import { EmptyState, LoadingState } from '@/components/ui';
+import { EmptyState, LoadingState, CategoryIcon } from '@/components/ui';
 import { transactionService } from '@/services/transactionService';
-import { getCategoryById, EXPENSE_CATEGORIES } from '@/constants/categories';
+import { getCategoryById } from '@/constants/categories';
 import { formatAmount } from '@/constants/currency';
-import type { Transaction } from '@/types';
 
 const colors = Colors.light;
 
@@ -26,6 +29,7 @@ interface CategoryBreakdown {
   id: string;
   label: string;
   icon: string;
+  vectorIcon: string;
   color: string;
   bgColor: string;
   total: number;
@@ -33,20 +37,30 @@ interface CategoryBreakdown {
   percentage: number;
 }
 
+type PeriodType = 'this_month' | 'last_month' | 'all';
+
 export default function AnalyticsScreen() {
   const insets = useSafeAreaInsets();
+  const [period, setPeriod] = useState<PeriodType>('this_month');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [breakdown, setBreakdown] = useState<CategoryBreakdown[]>([]);
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [totalIncome, setTotalIncome] = useState(0);
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = async (selectedPeriod: PeriodType = period) => {
     try {
-      // Get current month's date range
       const now = new Date();
-      const startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-      const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString();
+      let startDate: string | undefined;
+      let endDate: string | undefined;
+
+      if (selectedPeriod === 'this_month') {
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString();
+      } else if (selectedPeriod === 'last_month') {
+        startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
+        endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59).toISOString();
+      }
 
       const data = await transactionService.list({
         startDate,
@@ -54,7 +68,6 @@ export default function AnalyticsScreen() {
         limit: 500,
       });
 
-      // Calculate category breakdown for expenses
       const categoryMap = new Map<string, { total: number; count: number }>();
       let expTotal = 0;
       let incTotal = 0;
@@ -79,15 +92,15 @@ export default function AnalyticsScreen() {
           id: key,
           label: cat?.label || key,
           icon: cat?.icon || '📌',
+          vectorIcon: cat?.vectorIcon || 'pricetag-outline',
           color: cat?.color || '#868E96',
-          bgColor: cat?.bgColor || '#F8F9FA',
+          bgColor: cat?.bgColor || '#F1F5F9',
           total: value.total,
           count: value.count,
           percentage: expTotal > 0 ? Math.round((value.total / expTotal) * 100) : 0,
         });
       });
 
-      // Sort by total descending
       breakdownArr.sort((a, b) => b.total - a.total);
 
       setBreakdown(breakdownArr);
@@ -102,101 +115,228 @@ export default function AnalyticsScreen() {
   };
 
   useEffect(() => {
-    fetchAnalytics();
-  }, []);
+    fetchAnalytics(period);
+  }, [period]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    fetchAnalytics();
-  }, []);
+    fetchAnalytics(period);
+  }, [period]);
 
-  if (loading) {
-    return <LoadingState message="Analyzing your spending..." />;
+  const handlePeriodChange = (p: PeriodType) => {
+    if (Platform.OS !== 'web') {
+      try {
+        Haptics.selectionAsync();
+      } catch {}
+    }
+    setPeriod(p);
+  };
+
+  const netSavings = totalIncome - totalExpenses;
+  const savingsRate = totalIncome > 0 ? Math.max(0, Math.round((netSavings / totalIncome) * 100)) : 0;
+  const topCategory = breakdown[0];
+
+  if (loading && !refreshing) {
+    return <LoadingState message="Crunching your spending numbers..." />;
   }
-
-  const monthName = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
 
   return (
     <ScrollView
-      style={[styles.container, { paddingTop: insets.top }]}
-      contentContainerStyle={styles.content}
+      style={[styles.container, { paddingTop: Math.max(insets.top, 16) }]}
+      contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing['5xl'] }]}
       showsVerticalScrollIndicator={false}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={colors.primary}
+          colors={[colors.primary]}
+        />
       }
     >
+      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Insights</Text>
-        <Text style={styles.period}>{monthName}</Text>
+        <Text style={styles.subtitle}>Smart overview of your cash flow & categories</Text>
       </View>
 
-      {/* Summary Cards */}
-      <View style={styles.summaryRow}>
-        <View style={[styles.summaryCard, { borderLeftColor: colors.income }]}>
-          <Text style={styles.summaryLabel}>Income</Text>
-          <Text style={[styles.summaryAmount, { color: colors.income }]}>
-            {formatAmount(totalIncome)}
-          </Text>
+      {/* Period Selector Tabs */}
+      <View style={styles.periodSwitcher}>
+        {(
+          [
+            { id: 'this_month', label: 'This Month' },
+            { id: 'last_month', label: 'Last Month' },
+            { id: 'all', label: 'All Time' },
+          ] as const
+        ).map((p) => {
+          const isSelected = period === p.id;
+          return (
+            <TouchableOpacity
+              key={p.id}
+              style={[styles.periodTab, isSelected && styles.periodTabActive]}
+              onPress={() => handlePeriodChange(p.id)}
+              activeOpacity={0.8}
+            >
+              <Text
+                style={[
+                  styles.periodTabText,
+                  isSelected && styles.periodTabTextActive,
+                ]}
+              >
+                {p.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* Cashflow Card */}
+      <View style={styles.cashflowCard}>
+        <View style={styles.cashflowTop}>
+          <View>
+            <Text style={styles.cashflowLabel}>NET SAVINGS</Text>
+            <Text
+              style={[
+                styles.cashflowAmount,
+                { color: netSavings >= 0 ? colors.income : colors.expense },
+              ]}
+            >
+              {netSavings >= 0 ? '+' : ''}{formatAmount(netSavings)}
+            </Text>
+          </View>
+          <View
+            style={[
+              styles.savingsRateBadge,
+              { backgroundColor: netSavings >= 0 ? colors.successLight : colors.dangerLight },
+            ]}
+          >
+            <Ionicons
+              name={netSavings >= 0 ? 'trending-up' : 'trending-down'}
+              size={14}
+              color={netSavings >= 0 ? colors.income : colors.expense}
+            />
+            <Text
+              style={[
+                styles.savingsRateText,
+                { color: netSavings >= 0 ? colors.income : colors.expense },
+              ]}
+            >
+              {savingsRate}% saved
+            </Text>
+          </View>
         </View>
-        <View style={[styles.summaryCard, { borderLeftColor: colors.expense }]}>
-          <Text style={styles.summaryLabel}>Expenses</Text>
-          <Text style={[styles.summaryAmount, { color: colors.expense }]}>
-            {formatAmount(totalExpenses)}
-          </Text>
+
+        {/* Ratio Gauge */}
+        <View style={styles.ratioBarTrack}>
+          {totalIncome + totalExpenses > 0 ? (
+            <>
+              <View
+                style={[
+                  styles.ratioBarIncome,
+                  { flex: Math.max(totalIncome, 1) },
+                ]}
+              />
+              <View
+                style={[
+                  styles.ratioBarExpense,
+                  { flex: Math.max(totalExpenses, 1) },
+                ]}
+              />
+            </>
+          ) : (
+            <View style={{ flex: 1, backgroundColor: colors.borderLight }} />
+          )}
+        </View>
+
+        <View style={styles.ratioLabelsRow}>
+          <View style={styles.ratioLabelItem}>
+            <View style={[styles.ratioIndicator, { backgroundColor: colors.income }]} />
+            <Text style={styles.ratioLabelText}>
+              Income: <Text style={{ fontWeight: FontWeight.bold }}>{formatAmount(totalIncome)}</Text>
+            </Text>
+          </View>
+          <View style={styles.ratioLabelItem}>
+            <View style={[styles.ratioIndicator, { backgroundColor: colors.expense }]} />
+            <Text style={styles.ratioLabelText}>
+              Expense: <Text style={{ fontWeight: FontWeight.bold }}>{formatAmount(totalExpenses)}</Text>
+            </Text>
+          </View>
         </View>
       </View>
 
-      {/* Category Breakdown */}
+      {/* Top Highlights */}
+      {topCategory && (
+        <View style={styles.highlightsRow}>
+          <View style={styles.highlightCard}>
+            <View style={styles.highlightHeader}>
+              <Ionicons name="flame" size={16} color="#EA580C" />
+              <Text style={styles.highlightTitle}>Top Expense</Text>
+            </View>
+            <Text style={styles.highlightValue}>{topCategory.label}</Text>
+            <Text style={styles.highlightSub}>{formatAmount(topCategory.total)} ({topCategory.percentage}%)</Text>
+          </View>
+
+          <View style={styles.highlightCard}>
+            <View style={styles.highlightHeader}>
+              <Ionicons name="calendar-outline" size={16} color={colors.primary} />
+              <Text style={styles.highlightTitle}>Categories</Text>
+            </View>
+            <Text style={styles.highlightValue}>{breakdown.length} Active</Text>
+            <Text style={styles.highlightSub}>In this period</Text>
+          </View>
+        </View>
+      )}
+
+      {/* Category Breakdown Header */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Spending by Category</Text>
+        <Text style={styles.sectionTitle}>Spending Breakdown</Text>
+        <Text style={styles.sectionCount}>{breakdown.length} Categories</Text>
       </View>
 
       {breakdown.length === 0 ? (
-        <EmptyState
-          icon="📊"
-          title="No spending data yet"
-          message="Start tracking your expenses to see spending insights and analytics."
-        />
+        <View style={styles.emptyWrap}>
+          <EmptyState
+            vectorIcon="pie-chart-outline"
+            title="No spending data yet"
+            message="Add expense records in this period to visualize your breakdown."
+          />
+        </View>
       ) : (
         <View style={styles.breakdownList}>
           {breakdown.map((cat) => (
-            <View key={cat.id} style={styles.breakdownItem}>
-              <View style={styles.breakdownLeft}>
-                <View style={[styles.catIconContainer, { backgroundColor: cat.bgColor }]}>
-                  <Text style={styles.catIcon}>{cat.icon}</Text>
-                </View>
-                <View style={styles.catInfo}>
-                  <Text style={styles.catLabel}>{cat.label}</Text>
-                  <Text style={styles.catCount}>{cat.count} transaction{cat.count !== 1 ? 's' : ''}</Text>
-                </View>
-              </View>
-              <View style={styles.breakdownRight}>
-                <Text style={styles.catAmount}>{formatAmount(cat.total)}</Text>
-                <Text style={styles.catPercentage}>{cat.percentage}%</Text>
-              </View>
-            </View>
-          ))}
+            <View key={cat.id} style={styles.categoryRowCard}>
+              <CategoryIcon categoryId={cat.id} size={44} />
 
-          {/* Progress bars */}
-          <View style={styles.barsContainer}>
-            {breakdown.map((cat) => (
-              <View key={cat.id} style={styles.barRow}>
-                <Text style={styles.barLabel}>{cat.icon} {cat.label}</Text>
-                <View style={styles.barTrack}>
+              <View style={styles.catDetails}>
+                <View style={styles.catTopLine}>
+                  <Text style={styles.catName}>{cat.label}</Text>
+                  <Text style={styles.catAmount}>{formatAmount(cat.total)}</Text>
+                </View>
+
+                {/* Progress bar */}
+                <View style={styles.catProgressTrack}>
                   <View
                     style={[
-                      styles.barFill,
+                      styles.catProgressFill,
                       {
-                        width: `${cat.percentage}%`,
+                        width: `${Math.min(Math.max(cat.percentage, 4), 100)}%`,
                         backgroundColor: cat.color,
                       },
                     ]}
                   />
                 </View>
-                <Text style={styles.barPercent}>{cat.percentage}%</Text>
+
+                <View style={styles.catBottomLine}>
+                  <Text style={styles.catCountText}>
+                    {cat.count} transaction{cat.count !== 1 ? 's' : ''}
+                  </Text>
+                  <Text style={[styles.catPercentBadge, { color: cat.color }]}>
+                    {cat.percentage}% of total
+                  </Text>
+                </View>
               </View>
-            ))}
-          </View>
+            </View>
+          ))}
         </View>
       )}
     </ScrollView>
@@ -206,147 +346,241 @@ export default function AnalyticsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.offWhite,
+    backgroundColor: colors.background,
   },
   content: {
-    paddingBottom: Spacing['4xl'],
+    paddingBottom: Spacing['5xl'],
   },
   header: {
     paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.base,
-    paddingBottom: Spacing.lg,
+    paddingTop: Spacing.xs,
+    paddingBottom: Spacing.sm,
   },
   title: {
-    fontSize: FontSize.xl,
+    fontSize: FontSize['2xl'],
     fontWeight: FontWeight.bold,
     color: colors.textPrimary,
     letterSpacing: -0.5,
   },
-  period: {
-    fontSize: FontSize.sm,
+  subtitle: {
+    fontSize: FontSize.xs,
     color: colors.textSecondary,
-    marginTop: Spacing.xs,
+    marginTop: 2,
   },
-  summaryRow: {
+  periodSwitcher: {
+    flexDirection: 'row',
+    backgroundColor: colors.card,
+    borderRadius: BorderRadius.lg,
+    padding: 4,
+    marginHorizontal: Spacing.xl,
+    marginVertical: Spacing.md,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    ...Shadows.sm,
+  },
+  periodTab: {
+    flex: 1,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+  },
+  periodTabActive: {
+    backgroundColor: colors.primary,
+  },
+  periodTabText: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.semibold,
+    color: colors.textSecondary,
+  },
+  periodTabTextActive: {
+    color: '#FFFFFF',
+    fontWeight: FontWeight.bold,
+  },
+  cashflowCard: {
+    backgroundColor: colors.card,
+    marginHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    marginBottom: Spacing.lg,
+    ...Shadows.sm,
+  },
+  cashflowTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: Spacing.md,
+  },
+  cashflowLabel: {
+    fontSize: FontSize['2xs'],
+    color: colors.textMuted,
+    fontWeight: FontWeight.bold,
+    letterSpacing: 0.8,
+  },
+  cashflowAmount: {
+    fontSize: FontSize['2xl'],
+    fontWeight: FontWeight.bold,
+    letterSpacing: -0.5,
+    marginTop: 2,
+  },
+  savingsRateBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: BorderRadius.full,
+  },
+  savingsRateText: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
+  },
+  ratioBarTrack: {
+    flexDirection: 'row',
+    height: 10,
+    borderRadius: 5,
+    overflow: 'hidden',
+    marginBottom: Spacing.md,
+  },
+  ratioBarIncome: {
+    backgroundColor: colors.income,
+  },
+  ratioBarExpense: {
+    backgroundColor: colors.expense,
+  },
+  ratioLabelsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  ratioLabelItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  ratioIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  ratioLabelText: {
+    fontSize: FontSize.xs,
+    color: colors.textSecondary,
+  },
+  highlightsRow: {
     flexDirection: 'row',
     paddingHorizontal: Spacing.xl,
     gap: Spacing.md,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
-  summaryCard: {
+  highlightCard: {
     flex: 1,
-    backgroundColor: colors.white,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.base,
-    borderLeftWidth: 3,
+    backgroundColor: colors.card,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
     ...Shadows.sm,
   },
-  summaryLabel: {
-    fontSize: FontSize.sm,
-    color: colors.textSecondary,
-    marginBottom: Spacing.xs,
+  highlightHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 4,
   },
-  summaryAmount: {
-    fontSize: FontSize.lg,
+  highlightTitle: {
+    fontSize: FontSize['2xs'],
+    color: colors.textMuted,
     fontWeight: FontWeight.bold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
-  sectionHeader: {
-    paddingHorizontal: Spacing.xl,
-    marginBottom: Spacing.base,
-  },
-  sectionTitle: {
+  highlightValue: {
     fontSize: FontSize.md,
-    fontWeight: FontWeight.semibold,
+    fontWeight: FontWeight.bold,
     color: colors.textPrimary,
   },
-  breakdownList: {
-    paddingHorizontal: Spacing.xl,
+  highlightSub: {
+    fontSize: FontSize['2xs'],
+    color: colors.textSecondary,
+    marginTop: 2,
   },
-  breakdownItem: {
+  sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: colors.white,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.base,
+    paddingHorizontal: Spacing.xl,
     marginBottom: Spacing.sm,
-    ...Shadows.sm,
   },
-  breakdownLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  catIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: Spacing.md,
-  },
-  catIcon: {
-    fontSize: 18,
-  },
-  catInfo: {
-    flex: 1,
-  },
-  catLabel: {
-    fontSize: FontSize.base,
-    fontWeight: FontWeight.medium,
+  sectionTitle: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.bold,
     color: colors.textPrimary,
   },
-  catCount: {
+  sectionCount: {
     fontSize: FontSize.xs,
     color: colors.textMuted,
-    marginTop: 2,
   },
-  breakdownRight: {
-    alignItems: 'flex-end',
+  breakdownList: {
+    paddingHorizontal: Spacing.xl,
+    gap: Spacing.sm,
   },
-  catAmount: {
+  categoryRowCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    ...Shadows.sm,
+  },
+  catDetails: {
+    flex: 1,
+    marginLeft: Spacing.md,
+  },
+  catTopLine: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  catName: {
     fontSize: FontSize.base,
     fontWeight: FontWeight.semibold,
     color: colors.textPrimary,
   },
-  catPercentage: {
-    fontSize: FontSize.xs,
-    color: colors.textMuted,
-    marginTop: 2,
+  catAmount: {
+    fontSize: FontSize.base,
+    fontWeight: FontWeight.bold,
+    color: colors.textPrimary,
   },
-  barsContainer: {
-    marginTop: Spacing.xl,
-    backgroundColor: colors.white,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.base,
-    ...Shadows.sm,
-  },
-  barRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  barLabel: {
-    width: 100,
-    fontSize: FontSize.xs,
-    color: colors.textSecondary,
-  },
-  barTrack: {
-    flex: 1,
-    height: 8,
+  catProgressTrack: {
+    height: 6,
     backgroundColor: colors.borderLight,
-    borderRadius: 4,
-    marginHorizontal: Spacing.sm,
+    borderRadius: 3,
     overflow: 'hidden',
+    marginBottom: 6,
   },
-  barFill: {
+  catProgressFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: 3,
   },
-  barPercent: {
-    width: 36,
-    fontSize: FontSize.xs,
+  catBottomLine: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  catCountText: {
+    fontSize: FontSize['2xs'],
     color: colors.textMuted,
-    textAlign: 'right',
+  },
+  catPercentBadge: {
+    fontSize: FontSize['2xs'],
+    fontWeight: FontWeight.bold,
+  },
+  emptyWrap: {
+    paddingHorizontal: Spacing.xl,
   },
 });
+

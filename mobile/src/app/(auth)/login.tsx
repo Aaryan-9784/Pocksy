@@ -1,5 +1,6 @@
 /**
  * Pocksy Login Screen
+ * High-conversion authentication screen with gradient logo and vector inputs
  */
 
 import React, { useState } from 'react';
@@ -11,11 +12,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, FontSize, FontWeight, Spacing } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows } from '@/constants/theme';
 import { PocksyButton, PocksyInput } from '@/components/ui';
 import { useAuthStore } from '@/store/authStore';
 
@@ -60,9 +62,8 @@ export default function LoginScreen() {
 
     try {
       await login({ email: email.trim().toLowerCase(), password });
-      // Navigation happens automatically via root layout
     } catch (err: any) {
-      setApiError(err.message || 'Login failed. Please try again.');
+      setApiError(err.message || 'Login failed. Please verify credentials.');
     } finally {
       setLoading(false);
     }
@@ -74,52 +75,73 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
-        style={[styles.container, { paddingTop: insets.top }]}
+        style={[styles.container, { paddingTop: Math.max(insets.top, 20) }]}
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing['2xl'] }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         {/* Branding */}
         <View style={styles.branding}>
-          <View style={styles.logoContainer}>
-            <Text style={styles.logoIcon}>💎</Text>
-          </View>
+          <LinearGradient
+            colors={colors.gradientPrimary}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.logoContainer}
+          >
+            <Ionicons name="wallet" size={32} color="#FFFFFF" />
+          </LinearGradient>
           <Text style={styles.appName}>Pocksy</Text>
-          <Text style={styles.tagline}>Welcome back</Text>
+          <Text style={styles.tagline}>Smart Wealth & Expense Tracking</Text>
         </View>
 
-        {/* API Error */}
+        {/* API Error Banner */}
         {apiError ? (
           <View style={styles.errorBanner}>
+            <Ionicons name="alert-circle" size={18} color={colors.danger} />
             <Text style={styles.errorBannerText}>{apiError}</Text>
           </View>
         ) : null}
 
-        {/* Form */}
-        <View style={styles.form}>
+        {/* Form Card */}
+        <View style={styles.formCard}>
+          <Text style={styles.formTitle}>Welcome back</Text>
+          <Text style={styles.formSubtitle}>Sign in to access your financial dashboard</Text>
+
           <PocksyInput
-            label="Email"
-            placeholder="your@email.com"
+            label="EMAIL ADDRESS"
+            placeholder="name@example.com"
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(text) => {
+              setEmail(text);
+              setErrors((prev) => ({ ...prev, email: '' }));
+            }}
             error={errors.email}
             keyboardType="email-address"
             autoCapitalize="none"
             autoComplete="email"
             textContentType="emailAddress"
+            leftIcon={<Ionicons name="mail-outline" size={18} color={colors.textSecondary} />}
           />
 
           <PocksyInput
-            label="Password"
+            label="PASSWORD"
             placeholder="Enter your password"
             value={password}
-            onChangeText={setPassword}
+            onChangeText={(text) => {
+              setPassword(text);
+              setErrors((prev) => ({ ...prev, password: '' }));
+            }}
             error={errors.password}
             secureTextEntry={!showPassword}
             autoComplete="password"
             textContentType="password"
+            leftIcon={<Ionicons name="lock-closed-outline" size={18} color={colors.textSecondary} />}
             rightIcon={
-              <Text style={styles.eyeIcon}>{showPassword ? '🙈' : '👁️'}</Text>
+              <Ionicons
+                name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                size={18}
+                color={colors.textMuted}
+              />
             }
             onRightIconPress={() => setShowPassword(!showPassword)}
           />
@@ -132,9 +154,10 @@ export default function LoginScreen() {
           </TouchableOpacity>
 
           <PocksyButton
-            title="Log In"
+            title="Sign In"
             onPress={handleLogin}
             loading={loading}
+            icon={<Ionicons name="log-in-outline" size={18} color="#FFFFFF" />}
           />
         </View>
 
@@ -142,7 +165,7 @@ export default function LoginScreen() {
         <View style={styles.footer}>
           <Text style={styles.footerText}>Don't have an account? </Text>
           <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
-            <Text style={styles.footerLink}>Register</Text>
+            <Text style={styles.footerLink}>Create Account</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -156,7 +179,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: colors.offWhite,
+    backgroundColor: colors.background,
   },
   content: {
     flexGrow: 1,
@@ -165,73 +188,89 @@ const styles = StyleSheet.create({
   },
   branding: {
     alignItems: 'center',
-    marginBottom: Spacing['3xl'],
+    marginBottom: Spacing.xl,
   },
   logoContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    backgroundColor: colors.primary,
+    width: 68,
+    height: 68,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.base,
-  },
-  logoIcon: {
-    fontSize: 32,
+    marginBottom: Spacing.md,
+    ...Shadows.glow,
   },
   appName: {
     fontSize: FontSize['2xl'],
     fontWeight: FontWeight.bold,
     color: colors.textPrimary,
     letterSpacing: -0.5,
-    marginBottom: Spacing.xs,
   },
   tagline: {
-    fontSize: FontSize.base,
+    fontSize: FontSize.xs,
     color: colors.textSecondary,
+    marginTop: 2,
   },
   errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     backgroundColor: colors.dangerLight,
-    borderRadius: 12,
-    padding: Spacing.base,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
     marginBottom: Spacing.base,
     borderWidth: 1,
     borderColor: colors.danger + '30',
   },
   errorBannerText: {
     color: colors.danger,
-    fontSize: FontSize.sm,
-    textAlign: 'center',
+    fontSize: FontSize.xs,
     fontWeight: FontWeight.medium,
+    flex: 1,
   },
-  form: {
+  formCard: {
+    backgroundColor: colors.card,
+    borderRadius: BorderRadius['2xl'],
+    padding: Spacing.xl,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
     marginBottom: Spacing.xl,
+    ...Shadows.md,
   },
-  eyeIcon: {
-    fontSize: 18,
+  formTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: FontWeight.bold,
+    color: colors.textPrimary,
+    marginBottom: 2,
+  },
+  formSubtitle: {
+    fontSize: FontSize.xs,
+    color: colors.textSecondary,
+    marginBottom: Spacing.lg,
   },
   forgotPasswordContainer: {
     alignSelf: 'flex-end',
-    marginBottom: Spacing.xl,
-    marginTop: -Spacing.sm,
+    marginBottom: Spacing.lg,
+    marginTop: -Spacing.xs,
   },
   forgotPassword: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.xs,
     color: colors.primary,
-    fontWeight: FontWeight.medium,
+    fontWeight: FontWeight.semibold,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    paddingBottom: Spacing.base,
   },
   footerText: {
-    fontSize: FontSize.base,
+    fontSize: FontSize.sm,
     color: colors.textSecondary,
   },
   footerLink: {
-    fontSize: FontSize.base,
+    fontSize: FontSize.sm,
     color: colors.primary,
-    fontWeight: FontWeight.semibold,
+    fontWeight: FontWeight.bold,
   },
 });
+

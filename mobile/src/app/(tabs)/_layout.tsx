@@ -1,45 +1,80 @@
 /**
  * Pocksy Tab Navigation Layout
- * Premium bottom tabs with elevated center FAB
+ * Premium bottom bar with sleek gradient Add action button, Ionicons, and responsive safe area handling
  */
 
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
-import { Tabs, useRouter } from 'expo-router';
+import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, FontSize, FontWeight, Spacing, Shadows, BorderRadius } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
+import { Colors, FontSize, FontWeight, Shadows } from '@/constants/theme';
 
 const colors = Colors.light;
 
-function TabIcon({ icon, label, focused }: { icon: string; label: string; focused: boolean }) {
+interface TabIconProps {
+  iconFocused: keyof typeof Ionicons.glyphMap;
+  iconOutline: keyof typeof Ionicons.glyphMap;
+  label: string;
+  focused: boolean;
+}
+
+function TabIcon({ iconFocused, iconOutline, label, focused }: TabIconProps) {
   return (
     <View style={tabStyles.iconContainer}>
-      <Text style={[tabStyles.icon, focused && tabStyles.iconFocused]}>{icon}</Text>
-      <Text style={[tabStyles.label, focused && tabStyles.labelFocused]}>{label}</Text>
+      <Ionicons
+        name={focused ? iconFocused : iconOutline}
+        size={23}
+        color={focused ? colors.primary : '#64748B'}
+      />
+      <Text
+        style={[
+          tabStyles.label,
+          focused ? tabStyles.labelFocused : tabStyles.labelInactive,
+        ]}
+      >
+        {label}
+      </Text>
     </View>
   );
 }
 
-function AddButton() {
-  const router = useRouter();
+function CustomAddButton(props: any) {
+  const handlePress = (e: any) => {
+    if (Platform.OS !== 'web') {
+      try {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      } catch {}
+    }
+    props.onPress?.(e);
+  };
 
   return (
     <TouchableOpacity
-      style={tabStyles.addButton}
-      onPress={() => {
-        router.push('/(tabs)/add');
-      }}
+      {...props}
+      onPress={handlePress}
+      style={[props.style, tabStyles.addButtonContainer]}
       activeOpacity={0.85}
       accessibilityRole="button"
       accessibilityLabel="Add transaction"
     >
-      <Text style={tabStyles.addButtonIcon}>+</Text>
+      <LinearGradient
+        colors={colors.gradientPrimary}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={tabStyles.addButtonCircle}
+      >
+        <Ionicons name="add" size={26} color="#FFFFFF" />
+      </LinearGradient>
     </TouchableOpacity>
   );
 }
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
+  const bottomPadding = Math.max(insets.bottom, Platform.OS === 'android' ? 10 : 8);
 
   return (
     <Tabs
@@ -47,23 +82,28 @@ export default function TabLayout() {
         headerShown: false,
         tabBarStyle: {
           backgroundColor: colors.white,
-          borderTopColor: colors.borderLight,
+          borderTopColor: '#EEF2F6',
           borderTopWidth: 1,
-          height: 64 + insets.bottom,
-          paddingTop: Spacing.sm,
-          paddingBottom: insets.bottom,
+          height: 60 + bottomPadding,
+          paddingTop: 6,
+          paddingBottom: bottomPadding,
           ...Shadows.sm,
         },
         tabBarShowLabel: false,
         tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textMuted,
+        tabBarInactiveTintColor: '#64748B',
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon icon="🏠" label="Home" focused={focused} />
+            <TabIcon
+              iconFocused="home"
+              iconOutline="home-outline"
+              label="Home"
+              focused={focused}
+            />
           ),
         }}
       />
@@ -71,21 +111,31 @@ export default function TabLayout() {
         name="transactions"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon icon="📋" label="Activity" focused={focused} />
+            <TabIcon
+              iconFocused="receipt"
+              iconOutline="receipt-outline"
+              label="Activity"
+              focused={focused}
+            />
           ),
         }}
       />
       <Tabs.Screen
         name="add"
         options={{
-          tabBarButton: () => <AddButton />,
+          tabBarButton: (props) => <CustomAddButton {...props} />,
         }}
       />
       <Tabs.Screen
         name="analytics"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon icon="📊" label="Insights" focused={focused} />
+            <TabIcon
+              iconFocused="pie-chart"
+              iconOutline="pie-chart-outline"
+              label="Insights"
+              focused={focused}
+            />
           ),
         }}
       />
@@ -93,7 +143,12 @@ export default function TabLayout() {
         name="profile"
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon icon="👤" label="Profile" focused={focused} />
+            <TabIcon
+              iconFocused="person"
+              iconOutline="person-outline"
+              label="Profile"
+              focused={focused}
+            />
           ),
         }}
       />
@@ -105,38 +160,42 @@ const tabStyles = StyleSheet.create({
   iconContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 2,
-  },
-  icon: {
-    fontSize: 22,
-    opacity: 0.5,
-  },
-  iconFocused: {
-    opacity: 1,
+    paddingTop: 2,
+    minWidth: 54,
   },
   label: {
-    fontSize: FontSize.xs,
-    color: colors.textMuted,
+    fontSize: 11,
+    marginTop: 3,
+    letterSpacing: -0.2,
+  },
+  labelInactive: {
+    color: '#64748B',
     fontWeight: FontWeight.medium,
   },
   labelFocused: {
     color: colors.primary,
-    fontWeight: FontWeight.semibold,
+    fontWeight: FontWeight.bold,
   },
-  addButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: colors.primary,
+  addButtonContainer: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -20,
-    ...Shadows.lg,
+    backgroundColor: 'transparent',
+    top: -8,
   },
-  addButtonIcon: {
-    fontSize: 28,
-    color: '#FFFFFF',
-    fontWeight: FontWeight.bold,
-    lineHeight: 30,
+  addButtonCircle: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#52131E',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 6,
   },
 });
+
+
+

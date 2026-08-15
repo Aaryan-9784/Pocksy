@@ -1,5 +1,5 @@
 /**
- * PocksyInput — Premium text input with label, error state, and icon support
+ * PocksyInput — Premium text input with label, focus glow, error state, and icon support
  */
 
 import React, { useState } from 'react';
@@ -12,6 +12,7 @@ import {
   type TextInputProps,
   type ViewStyle,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, BorderRadius, FontSize, FontWeight, Spacing } from '@/constants/theme';
 
 const colors = Colors.light;
@@ -55,6 +56,7 @@ export function PocksyInput({
             borderColor,
             backgroundColor: isFocused ? colors.white : colors.offWhite,
           },
+          isFocused && styles.inputWrapperFocused,
         ]}
       >
         {leftIcon && <View style={styles.leftIcon}>{leftIcon}</View>}
@@ -76,15 +78,20 @@ export function PocksyInput({
           <TouchableOpacity
             onPress={onRightIconPress}
             style={styles.rightIcon}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
             {rightIcon}
           </TouchableOpacity>
         )}
       </View>
 
-      {error && <Text style={styles.error}>{error}</Text>}
-      {hint && !error && <Text style={styles.hint}>{hint}</Text>}
+      {error ? (
+        <View style={styles.errorRow}>
+          <Ionicons name="alert-circle" size={14} color={colors.danger} />
+          <Text style={styles.error}>{error}</Text>
+        </View>
+      ) : null}
+      {hint && !error ? <Text style={styles.hint}>{hint}</Text> : null}
     </View>
   );
 }
@@ -95,9 +102,9 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: FontSize.sm,
-    fontWeight: FontWeight.medium,
+    fontWeight: FontWeight.semibold,
     color: colors.textPrimary,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
     letterSpacing: 0.2,
   },
   inputWrapper: {
@@ -107,6 +114,9 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.base,
     minHeight: 52,
+  },
+  inputWrapperFocused: {
+    backgroundColor: colors.white,
   },
   input: {
     flex: 1,
@@ -120,16 +130,23 @@ const styles = StyleSheet.create({
   rightIcon: {
     marginLeft: Spacing.md,
   },
+  errorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: Spacing['2xs'],
+    marginLeft: Spacing['2xs'],
+  },
   error: {
     fontSize: FontSize.xs,
     color: colors.danger,
-    marginTop: Spacing.xs,
-    marginLeft: Spacing.xs,
+    fontWeight: FontWeight.medium,
   },
   hint: {
     fontSize: FontSize.xs,
     color: colors.textSecondary,
-    marginTop: Spacing.xs,
-    marginLeft: Spacing.xs,
+    marginTop: Spacing['2xs'],
+    marginLeft: Spacing['2xs'],
   },
 });
+

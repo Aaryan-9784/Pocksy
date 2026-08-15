@@ -1,12 +1,14 @@
 /**
- * TransactionItem — Single transaction row for lists
+ * TransactionItem — Premium transaction row with vector badges and metadata
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Colors, BorderRadius, FontSize, FontWeight, Spacing } from '@/constants/theme';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { Colors, BorderRadius, FontSize, FontWeight, Spacing, Shadows } from '@/constants/theme';
 import { formatSignedAmount } from '@/constants/currency';
 import { getCategoryById } from '@/constants/categories';
+import { CategoryIcon } from './CategoryIcon';
 import type { Transaction } from '@/types';
 
 const colors = Colors.light;
@@ -21,27 +23,47 @@ export function TransactionItem({ transaction, onPress, onLongPress }: Transacti
   const category = getCategoryById(transaction.category);
   const isExpense = transaction.type === 'expense';
 
+  const formattedDate = formatDate(transaction.date);
+
+  const handleLongPress = () => {
+    if (Platform.OS !== 'web') {
+      try {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      } catch {}
+    }
+    onLongPress?.(transaction);
+  };
+
   return (
     <TouchableOpacity
-      style={styles.container}
+      style={styles.card}
       onPress={() => onPress?.(transaction)}
-      onLongPress={() => onLongPress?.(transaction)}
-      activeOpacity={0.7}
+      onLongPress={handleLongPress}
+      activeOpacity={0.72}
       accessibilityRole="button"
       accessibilityLabel={`${transaction.description}, ${formatSignedAmount(transaction.amount, transaction.type)}`}
     >
-      <View style={[styles.iconContainer, { backgroundColor: category?.bgColor || '#F8F9FA' }]}>
-        <Text style={styles.icon}>{category?.icon || '📌'}</Text>
-      </View>
+      <CategoryIcon categoryId={transaction.category} size={46} />
 
       <View style={styles.details}>
         <Text style={styles.title} numberOfLines={1}>
           {transaction.description}
         </Text>
-        <Text style={styles.category}>
-          {category?.label || transaction.category}
-          {transaction.paymentMethod ? ` · ${transaction.paymentMethod}` : ''}
-        </Text>
+        <View style={styles.metaRow}>
+          <Text style={styles.categoryName}>
+            {category?.label || transaction.category}
+          </Text>
+          {transaction.paymentMethod ? (
+            <>
+              <Text style={styles.dot}>•</Text>
+              <Text style={styles.paymentMethod}>
+                {transaction.paymentMethod.toUpperCase()}
+              </Text>
+            </>
+          ) : null}
+          <Text style={styles.dot}>•</Text>
+          <Text style={styles.date}>{formattedDate}</Text>
+        </View>
       </View>
 
       <View style={styles.amountContainer}>
@@ -58,44 +80,80 @@ export function TransactionItem({ transaction, onPress, onLongPress }: Transacti
   );
 }
 
+function formatDate(dateString: string): string {
+  try {
+    const d = new Date(dateString);
+    const now = new Date();
+    const isToday =
+      d.getDate() === now.getDate() &&
+      d.getMonth() === now.getMonth() &&
+      d.getFullYear() === now.getFullYear();
+
+    if (isToday) {
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  } catch {
+    return '';
+  }
+}
+
 const styles = StyleSheet.create({
-  container: {
+  card: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: colors.card,
+    borderRadius: BorderRadius.lg,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.base,
-  },
-  iconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: BorderRadius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: Spacing.md,
-  },
-  icon: {
-    fontSize: 20,
+    marginBottom: Spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    ...Shadows.sm,
   },
   details: {
     flex: 1,
-    marginRight: Spacing.md,
+    marginLeft: Spacing.md,
+    marginRight: Spacing.sm,
   },
   title: {
     fontSize: FontSize.base,
-    fontWeight: FontWeight.medium,
+    fontWeight: FontWeight.semibold,
     color: colors.textPrimary,
-    marginBottom: 2,
+    marginBottom: 3,
   },
-  category: {
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'nowrap',
+  },
+  categoryName: {
     fontSize: FontSize.xs,
     color: colors.textSecondary,
+    fontWeight: FontWeight.medium,
+  },
+  dot: {
+    fontSize: FontSize.xs,
+    color: colors.textMuted,
+    marginHorizontal: 4,
+  },
+  paymentMethod: {
+    fontSize: FontSize['2xs'],
+    color: colors.textMuted,
+    fontWeight: FontWeight.semibold,
+    letterSpacing: 0.3,
+  },
+  date: {
+    fontSize: FontSize.xs,
+    color: colors.textMuted,
   },
   amountContainer: {
     alignItems: 'flex-end',
   },
   amount: {
     fontSize: FontSize.base,
-    fontWeight: FontWeight.semibold,
+    fontWeight: FontWeight.bold,
     letterSpacing: -0.3,
   },
 });
+

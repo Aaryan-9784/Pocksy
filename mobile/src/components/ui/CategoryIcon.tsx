@@ -1,19 +1,31 @@
 /**
- * CategoryIcon — Renders a category icon with colored background circle
+ * CategoryIcon — Renders a category icon with colored background badge
  */
 
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet, Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { BorderRadius } from '@/constants/theme';
 import { getCategoryById } from '@/constants/categories';
 
 interface CategoryIconProps {
   categoryId: string;
   size?: number;
+  iconSize?: number;
+  variant?: 'rounded' | 'circle';
 }
 
-export function CategoryIcon({ categoryId, size = 44 }: CategoryIconProps) {
+export function CategoryIcon({
+  categoryId,
+  size = 44,
+  iconSize,
+  variant = 'rounded',
+}: CategoryIconProps) {
   const category = getCategoryById(categoryId);
+  const calculatedIconSize = iconSize || Math.round(size * 0.5);
+  const borderRadius = variant === 'circle' ? size / 2 : Math.round(size * 0.28);
+
+  const iconName = (category?.vectorIcon || 'pricetag-outline') as keyof typeof Ionicons.glyphMap;
 
   return (
     <View
@@ -22,14 +34,22 @@ export function CategoryIcon({ categoryId, size = 44 }: CategoryIconProps) {
         {
           width: size,
           height: size,
-          borderRadius: size * 0.3,
-          backgroundColor: category?.bgColor || '#F8F9FA',
+          borderRadius,
+          backgroundColor: category?.bgColor || '#F1F5F9',
         },
       ]}
     >
-      <Text style={[styles.icon, { fontSize: size * 0.45 }]}>
-        {category?.icon || '📌'}
-      </Text>
+      {category?.vectorIcon ? (
+        <Ionicons
+          name={iconName}
+          size={calculatedIconSize}
+          color={category.color}
+        />
+      ) : (
+        <Text style={{ fontSize: calculatedIconSize }}>
+          {category?.icon || '📌'}
+        </Text>
+      )}
     </View>
   );
 }
@@ -39,5 +59,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  icon: {},
 });
+

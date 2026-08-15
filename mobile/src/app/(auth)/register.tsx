@@ -1,5 +1,6 @@
 /**
  * Pocksy Register Screen
+ * High-conversion sign up screen with gradient logo and vector inputs
  */
 
 import React, { useState } from 'react';
@@ -14,7 +15,9 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, FontSize, FontWeight, Spacing } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows } from '@/constants/theme';
 import { PocksyButton, PocksyInput } from '@/components/ui';
 import { useAuthStore } from '@/store/authStore';
 
@@ -38,7 +41,7 @@ export default function RegisterScreen() {
     const newErrors: Record<string, string> = {};
 
     if (!name.trim()) {
-      newErrors.name = 'Name is required.';
+      newErrors.name = 'Full name is required.';
     } else if (name.trim().length < 2) {
       newErrors.name = 'Name must be at least 2 characters.';
     }
@@ -78,7 +81,6 @@ export default function RegisterScreen() {
         password,
         confirmPassword,
       });
-      // Navigation happens automatically via root layout
     } catch (err: any) {
       setApiError(err.message || 'Registration failed. Please try again.');
     } finally {
@@ -92,75 +94,104 @@ export default function RegisterScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
-        style={[styles.container, { paddingTop: insets.top }]}
+        style={[styles.container, { paddingTop: Math.max(insets.top, 20) }]}
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing['2xl'] }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         {/* Branding */}
         <View style={styles.branding}>
-          <View style={styles.logoContainer}>
-            <Text style={styles.logoIcon}>💎</Text>
-          </View>
+          <LinearGradient
+            colors={colors.gradientPrimary}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.logoContainer}
+          >
+            <Ionicons name="sparkles" size={30} color="#FFFFFF" />
+          </LinearGradient>
           <Text style={styles.appName}>Create Account</Text>
-          <Text style={styles.tagline}>Start managing your money today</Text>
+          <Text style={styles.tagline}>Start mastering your finances today</Text>
         </View>
 
-        {/* API Error */}
+        {/* API Error Banner */}
         {apiError ? (
           <View style={styles.errorBanner}>
+            <Ionicons name="alert-circle" size={18} color={colors.danger} />
             <Text style={styles.errorBannerText}>{apiError}</Text>
           </View>
         ) : null}
 
-        {/* Form */}
-        <View style={styles.form}>
+        {/* Form Card */}
+        <View style={styles.formCard}>
+          <Text style={styles.formTitle}>Get Started with Pocksy</Text>
+          <Text style={styles.formSubtitle}>Enter your details below to create your account</Text>
+
           <PocksyInput
-            label="Full Name"
+            label="FULL NAME"
             placeholder="John Doe"
             value={name}
-            onChangeText={setName}
+            onChangeText={(text) => {
+              setName(text);
+              setErrors((prev) => ({ ...prev, name: '' }));
+            }}
             error={errors.name}
             autoCapitalize="words"
             autoComplete="name"
             textContentType="name"
+            leftIcon={<Ionicons name="person-outline" size={18} color={colors.textSecondary} />}
           />
 
           <PocksyInput
-            label="Email"
-            placeholder="your@email.com"
+            label="EMAIL ADDRESS"
+            placeholder="name@example.com"
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(text) => {
+              setEmail(text);
+              setErrors((prev) => ({ ...prev, email: '' }));
+            }}
             error={errors.email}
             keyboardType="email-address"
             autoCapitalize="none"
             autoComplete="email"
             textContentType="emailAddress"
+            leftIcon={<Ionicons name="mail-outline" size={18} color={colors.textSecondary} />}
           />
 
           <PocksyInput
-            label="Password"
+            label="PASSWORD"
             placeholder="Minimum 8 characters"
             value={password}
-            onChangeText={setPassword}
+            onChangeText={(text) => {
+              setPassword(text);
+              setErrors((prev) => ({ ...prev, password: '' }));
+            }}
             error={errors.password}
             secureTextEntry={!showPassword}
             autoComplete="new-password"
             textContentType="newPassword"
+            leftIcon={<Ionicons name="lock-closed-outline" size={18} color={colors.textSecondary} />}
             rightIcon={
-              <Text style={styles.eyeIcon}>{showPassword ? '🙈' : '👁️'}</Text>
+              <Ionicons
+                name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                size={18}
+                color={colors.textMuted}
+              />
             }
             onRightIconPress={() => setShowPassword(!showPassword)}
           />
 
           <PocksyInput
-            label="Confirm Password"
+            label="CONFIRM PASSWORD"
             placeholder="Re-enter your password"
             value={confirmPassword}
-            onChangeText={setConfirmPassword}
+            onChangeText={(text) => {
+              setConfirmPassword(text);
+              setErrors((prev) => ({ ...prev, confirmPassword: '' }));
+            }}
             error={errors.confirmPassword}
             secureTextEntry={!showPassword}
             textContentType="newPassword"
+            leftIcon={<Ionicons name="shield-checkmark-outline" size={18} color={colors.textSecondary} />}
           />
 
           <View style={styles.buttonContainer}>
@@ -168,6 +199,7 @@ export default function RegisterScreen() {
               title="Create Account"
               onPress={handleRegister}
               loading={loading}
+              icon={<Ionicons name="arrow-forward" size={18} color="#FFFFFF" />}
             />
           </View>
         </View>
@@ -176,7 +208,7 @@ export default function RegisterScreen() {
         <View style={styles.footer}>
           <Text style={styles.footerText}>Already have an account? </Text>
           <TouchableOpacity onPress={() => router.back()}>
-            <Text style={styles.footerLink}>Log In</Text>
+            <Text style={styles.footerLink}>Sign In</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -190,7 +222,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: colors.offWhite,
+    backgroundColor: colors.background,
   },
   content: {
     flexGrow: 1,
@@ -199,50 +231,64 @@ const styles = StyleSheet.create({
   },
   branding: {
     alignItems: 'center',
-    marginBottom: Spacing['2xl'],
+    marginBottom: Spacing.lg,
   },
   logoContainer: {
-    width: 72,
-    height: 72,
+    width: 64,
+    height: 64,
     borderRadius: 20,
-    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.base,
-  },
-  logoIcon: {
-    fontSize: 32,
+    marginBottom: Spacing.sm,
+    ...Shadows.glow,
   },
   appName: {
     fontSize: FontSize['2xl'],
     fontWeight: FontWeight.bold,
     color: colors.textPrimary,
     letterSpacing: -0.5,
-    marginBottom: Spacing.xs,
   },
   tagline: {
-    fontSize: FontSize.base,
+    fontSize: FontSize.xs,
     color: colors.textSecondary,
+    marginTop: 2,
   },
   errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     backgroundColor: colors.dangerLight,
-    borderRadius: 12,
-    padding: Spacing.base,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
     marginBottom: Spacing.base,
     borderWidth: 1,
     borderColor: colors.danger + '30',
   },
   errorBannerText: {
     color: colors.danger,
-    fontSize: FontSize.sm,
-    textAlign: 'center',
+    fontSize: FontSize.xs,
     fontWeight: FontWeight.medium,
+    flex: 1,
   },
-  form: {
-    marginBottom: Spacing.xl,
+  formCard: {
+    backgroundColor: colors.card,
+    borderRadius: BorderRadius['2xl'],
+    padding: Spacing.xl,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    marginBottom: Spacing.lg,
+    ...Shadows.md,
   },
-  eyeIcon: {
-    fontSize: 18,
+  formTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: FontWeight.bold,
+    color: colors.textPrimary,
+    marginBottom: 2,
+  },
+  formSubtitle: {
+    fontSize: FontSize.xs,
+    color: colors.textSecondary,
+    marginBottom: Spacing.lg,
   },
   buttonContainer: {
     marginTop: Spacing.sm,
@@ -251,14 +297,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    paddingBottom: Spacing.base,
   },
   footerText: {
-    fontSize: FontSize.base,
+    fontSize: FontSize.sm,
     color: colors.textSecondary,
   },
   footerLink: {
-    fontSize: FontSize.base,
+    fontSize: FontSize.sm,
     color: colors.primary,
-    fontWeight: FontWeight.semibold,
+    fontWeight: FontWeight.bold,
   },
 });
+

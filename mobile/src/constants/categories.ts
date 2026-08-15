@@ -5,41 +5,49 @@
 export interface CategoryItem {
   id: string;
   label: string;
-  icon: string; // emoji for now, can be swapped for icon component
+  icon: string; // fallback emoji
+  vectorIcon: string; // Ionicons icon name
   color: string;
   bgColor: string;
 }
 
 export const EXPENSE_CATEGORIES: CategoryItem[] = [
-  { id: 'food', label: 'Food', icon: '🍔', color: '#E8590C', bgColor: '#FFF4E6' },
-  { id: 'travel', label: 'Travel', icon: '✈️', color: '#1971C2', bgColor: '#E7F5FF' },
-  { id: 'shopping', label: 'Shopping', icon: '🛍️', color: '#9C36B5', bgColor: '#F8F0FC' },
-  { id: 'bills', label: 'Bills', icon: '📄', color: '#5C940D', bgColor: '#F4FCE3' },
-  { id: 'education', label: 'Education', icon: '📚', color: '#1098AD', bgColor: '#E3FAFC' },
-  { id: 'entertainment', label: 'Entertainment', icon: '🎬', color: '#F76707', bgColor: '#FFF4E6' },
-  { id: 'health', label: 'Health', icon: '💊', color: '#E03131', bgColor: '#FFF5F5' },
-  { id: 'rent', label: 'Rent', icon: '🏠', color: '#6741D9', bgColor: '#F3F0FF' },
-  { id: 'subscriptions', label: 'Subscriptions', icon: '🔄', color: '#0CA678', bgColor: '#E6FCF5' },
-  { id: 'other', label: 'Other', icon: '📌', color: '#868E96', bgColor: '#F8F9FA' },
+  { id: 'food', label: 'Food', icon: '🍔', vectorIcon: 'fast-food', color: '#EA580C', bgColor: '#FFEDD5' },
+  { id: 'travel', label: 'Travel', icon: '✈️', vectorIcon: 'car-sport', color: '#2563EB', bgColor: '#DBEAFE' },
+  { id: 'shopping', label: 'Shopping', icon: '🛍️', vectorIcon: 'bag-handle', color: '#9333EA', bgColor: '#F3E8FF' },
+  { id: 'bills', label: 'Bills', icon: '📄', vectorIcon: 'receipt', color: '#16A34A', bgColor: '#DCFCE7' },
+  { id: 'education', label: 'Education', icon: '📚', vectorIcon: 'school', color: '#0891B2', bgColor: '#CFFAFE' },
+  { id: 'entertainment', label: 'Entertainment', icon: '🎬', vectorIcon: 'film', color: '#D97706', bgColor: '#FEF3C7' },
+  { id: 'health', label: 'Health', icon: '💊', vectorIcon: 'medkit', color: '#DC2626', bgColor: '#FEE2E2' },
+  { id: 'rent', label: 'Rent', icon: '🏠', vectorIcon: 'home', color: '#7C3AED', bgColor: '#EDE9FE' },
+  { id: 'subscriptions', label: 'Subscriptions', icon: '🔄', vectorIcon: 'repeat', color: '#0D9488', bgColor: '#CCFBF1' },
+  { id: 'other', label: 'Other', icon: '📌', vectorIcon: 'ellipsis-horizontal-circle', color: '#64748B', bgColor: '#F1F5F9' },
 ];
 
 export const INCOME_SOURCES: CategoryItem[] = [
-  { id: 'salary', label: 'Salary', icon: '💰', color: '#2D8B55', bgColor: '#E8F5EE' },
-  { id: 'freelance', label: 'Freelance', icon: '💻', color: '#1971C2', bgColor: '#E7F5FF' },
-  { id: 'business', label: 'Business', icon: '🏢', color: '#6741D9', bgColor: '#F3F0FF' },
-  { id: 'investment', label: 'Investment', icon: '📈', color: '#E8590C', bgColor: '#FFF4E6' },
-  { id: 'gift', label: 'Gift', icon: '🎁', color: '#E03131', bgColor: '#FFF5F5' },
-  { id: 'other', label: 'Other', icon: '📌', color: '#868E96', bgColor: '#F8F9FA' },
+  { id: 'salary', label: 'Salary', icon: '💰', vectorIcon: 'wallet', color: '#16A34A', bgColor: '#DCFCE7' },
+  { id: 'freelance', label: 'Freelance', icon: '💻', vectorIcon: 'laptop', color: '#2563EB', bgColor: '#DBEAFE' },
+  { id: 'business', label: 'Business', icon: '🏢', vectorIcon: 'business', color: '#7C3AED', bgColor: '#EDE9FE' },
+  { id: 'investment', label: 'Investment', icon: '📈', vectorIcon: 'trending-up', color: '#EA580C', bgColor: '#FFEDD5' },
+  { id: 'gift', label: 'Gift', icon: '🎁', vectorIcon: 'gift', color: '#DC2626', bgColor: '#FEE2E2' },
+  { id: 'other', label: 'Other', icon: '📌', vectorIcon: 'add-circle', color: '#64748B', bgColor: '#F1F5F9' },
 ];
 
-export const PAYMENT_METHODS = [
-  { id: 'cash', label: 'Cash', icon: '💵' },
-  { id: 'upi', label: 'UPI', icon: '📱' },
-  { id: 'credit_card', label: 'Credit Card', icon: '💳' },
-  { id: 'debit_card', label: 'Debit Card', icon: '💳' },
-  { id: 'bank_transfer', label: 'Bank Transfer', icon: '🏦' },
-  { id: 'other', label: 'Other', icon: '💰' },
-] as const;
+export interface PaymentMethodItem {
+  id: string;
+  label: string;
+  icon: string;
+  vectorIcon: string;
+}
+
+export const PAYMENT_METHODS: PaymentMethodItem[] = [
+  { id: 'cash', label: 'Cash', icon: '💵', vectorIcon: 'cash-outline' },
+  { id: 'upi', label: 'UPI', icon: '📱', vectorIcon: 'flash-outline' },
+  { id: 'credit_card', label: 'Credit Card', icon: '💳', vectorIcon: 'card-outline' },
+  { id: 'debit_card', label: 'Debit Card', icon: '💳', vectorIcon: 'card' },
+  { id: 'bank_transfer', label: 'Bank Transfer', icon: '🏦', vectorIcon: 'business-outline' },
+  { id: 'other', label: 'Other', icon: '💰', vectorIcon: 'wallet-outline' },
+];
 
 export function getCategoryById(id: string): CategoryItem | undefined {
   return (
@@ -51,3 +59,4 @@ export function getCategoryById(id: string): CategoryItem | undefined {
 export function getPaymentMethodById(id: string) {
   return PAYMENT_METHODS.find((p) => p.id === id);
 }
+

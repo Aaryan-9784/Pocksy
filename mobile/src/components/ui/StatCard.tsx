@@ -1,9 +1,10 @@
 /**
- * StatCard — Compact stat display for income/expense summaries
+ * StatCard — Compact stat display with vector badges
  */
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, BorderRadius, FontSize, FontWeight, Spacing, Shadows } from '@/constants/theme';
 import { formatAmount } from '@/constants/currency';
 
@@ -12,11 +13,18 @@ const colors = Colors.light;
 interface StatCardProps {
   label: string;
   amount: number;
-  icon: string;
+  icon?: string;
+  vectorIcon?: keyof typeof Ionicons.glyphMap;
   variant?: 'income' | 'expense' | 'neutral';
 }
 
-export function StatCard({ label, amount, icon, variant = 'neutral' }: StatCardProps) {
+export function StatCard({
+  label,
+  amount,
+  icon,
+  vectorIcon,
+  variant = 'neutral',
+}: StatCardProps) {
   const accentColor =
     variant === 'income'
       ? colors.income
@@ -31,10 +39,23 @@ export function StatCard({ label, amount, icon, variant = 'neutral' }: StatCardP
         ? colors.dangerLight
         : colors.primaryLight;
 
+  const defaultVectorIcon: keyof typeof Ionicons.glyphMap =
+    variant === 'income'
+      ? 'arrow-down'
+      : variant === 'expense'
+        ? 'arrow-up'
+        : 'wallet';
+
+  const iconToRender = vectorIcon || defaultVectorIcon;
+
   return (
     <View style={styles.card}>
       <View style={[styles.iconContainer, { backgroundColor: bgColor }]}>
-        <Text style={styles.icon}>{icon}</Text>
+        {iconToRender ? (
+          <Ionicons name={iconToRender} size={18} color={accentColor} />
+        ) : (
+          <Text style={styles.icon}>{icon || '📊'}</Text>
+        )}
       </View>
       <Text style={styles.label}>{label}</Text>
       <Text style={[styles.amount, { color: accentColor }]}>
@@ -48,17 +69,19 @@ const styles = StyleSheet.create({
   card: {
     flex: 1,
     backgroundColor: colors.card,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.xl,
     padding: Spacing.base,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
     ...Shadows.sm,
   },
   iconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.sm,
+    width: 38,
+    height: 38,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   icon: {
     fontSize: 18,
@@ -67,7 +90,7 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     color: colors.textSecondary,
     fontWeight: FontWeight.medium,
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing['2xs'],
   },
   amount: {
     fontSize: FontSize.lg,
@@ -75,3 +98,4 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
 });
+

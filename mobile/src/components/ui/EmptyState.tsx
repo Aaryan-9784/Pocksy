@@ -1,16 +1,18 @@
 /**
- * EmptyState — Polished empty state with message and optional CTA
+ * EmptyState — Polished empty state with decorative icon badge and CTA
  */
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors, FontSize, FontWeight, Spacing } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors, BorderRadius, FontSize, FontWeight, Spacing } from '@/constants/theme';
 import { PocksyButton } from './Button';
 
 const colors = Colors.light;
 
 interface EmptyStateProps {
   icon?: string;
+  vectorIcon?: keyof typeof Ionicons.glyphMap;
   title: string;
   message: string;
   actionLabel?: string;
@@ -18,7 +20,8 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({
-  icon = '📭',
+  icon,
+  vectorIcon = 'receipt-outline',
   title,
   message,
   actionLabel,
@@ -26,7 +29,15 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <View style={styles.container}>
-      <Text style={styles.icon}>{icon}</Text>
+      <View style={styles.iconCircleOuter}>
+        <View style={styles.iconCircleInner}>
+          {vectorIcon ? (
+            <Ionicons name={vectorIcon} size={36} color={colors.primary} />
+          ) : (
+            <Text style={styles.iconEmoji}>{icon || '📭'}</Text>
+          )}
+        </View>
+      </View>
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.message}>{message}</Text>
       {actionLabel && onAction && (
@@ -47,28 +58,47 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Spacing['4xl'],
-    paddingHorizontal: Spacing['2xl'],
+    paddingVertical: Spacing['3xl'],
+    paddingHorizontal: Spacing.xl,
   },
-  icon: {
-    fontSize: 48,
-    marginBottom: Spacing.base,
+  iconCircleOuter: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.lg,
+  },
+  iconCircleInner: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  iconEmoji: {
+    fontSize: 32,
   },
   title: {
     fontSize: FontSize.lg,
-    fontWeight: FontWeight.semibold,
+    fontWeight: FontWeight.bold,
     color: colors.textPrimary,
     textAlign: 'center',
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   message: {
-    fontSize: FontSize.base,
+    fontSize: FontSize.sm,
     color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: Spacing.xl,
+    lineHeight: 20,
+    marginBottom: Spacing.lg,
   },
   buttonWrapper: {
-    marginTop: Spacing.sm,
+    marginTop: Spacing.xs,
   },
 });
+

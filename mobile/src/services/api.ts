@@ -1,9 +1,4 @@
-/**
- * Pocksy API Client
- * Centralized fetch wrapper with auth token injection
- */
-
-import { useAuthStore } from '@/store/authStore';
+// Avoid circular static import with authStore
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
@@ -48,8 +43,14 @@ interface ApiResponse<T = any> {
 
 class ApiClient {
   private getToken(): string | null {
-    return useAuthStore.getState().token;
+    try {
+      const { useAuthStore } = require('@/store/authStore');
+      return useAuthStore.getState().token;
+    } catch {
+      return null;
+    }
   }
+
 
   private buildUrl(endpoint: string, params?: Record<string, string | number | undefined>): string {
     const url = `${BASE_URL}${endpoint}`;

@@ -9,12 +9,16 @@ import {
   StyleSheet,
   Dimensions,
   FlatList,
+  Platform,
   type NativeSyntheticEvent,
   type NativeScrollEvent,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, FontSize, FontWeight, Spacing, BorderRadius } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
+import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows } from '@/constants/theme';
 import { PocksyButton } from '@/components/ui';
 import { useAuthStore } from '@/store/authStore';
 
@@ -23,40 +27,45 @@ const colors = Colors.light;
 
 interface OnboardingSlide {
   id: string;
-  icon: string;
+  vectorIcon: keyof typeof Ionicons.glyphMap;
   title: string;
   subtitle: string;
   accent: string;
+  gradient: readonly [string, string];
 }
 
 const SLIDES: OnboardingSlide[] = [
   {
     id: '1',
-    icon: '💎',
-    title: 'Welcome to Pocksy',
-    subtitle: 'Know your money.\nOwn your spending.',
+    vectorIcon: 'wallet',
+    title: 'Master Your Money',
+    subtitle: 'Track expenses, monitor income, and gain complete financial clarity in real-time.',
     accent: colors.primary,
+    gradient: colors.gradientPrimary,
   },
   {
     id: '2',
-    icon: '⚡',
-    title: 'Track Effortlessly',
-    subtitle: 'Record every expense\nin seconds.',
-    accent: '#1971C2',
+    vectorIcon: 'flash',
+    title: 'Track in Seconds',
+    subtitle: 'Lightning-fast transaction logging with smart categories and instant presets.',
+    accent: '#2563EB',
+    gradient: ['#3B82F6', '#1D4ED8'],
   },
   {
     id: '3',
-    icon: '📊',
-    title: 'Understand Your\nSpending',
-    subtitle: 'See where your\nmoney goes.',
-    accent: '#0CA678',
+    vectorIcon: 'pie-chart',
+    title: 'Deep Visual Insights',
+    subtitle: 'Understand exactly where your wealth goes with automated cashflow analytics.',
+    accent: '#059669',
+    gradient: ['#10B981', '#047857'],
   },
   {
     id: '4',
-    icon: '🎯',
-    title: 'Build Better\nHabits',
-    subtitle: 'Set budgets and\nstay in control.',
-    accent: '#E8590C',
+    vectorIcon: 'shield-checkmark',
+    title: 'Budget & Grow',
+    subtitle: 'Set personalized monthly limits and stay in control of your financial destiny.',
+    accent: '#D97706',
+    gradient: ['#F59E0B', '#B45309'],
   },
 ];
 
@@ -71,7 +80,14 @@ export default function OnboardingScreen() {
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const index = Math.round(event.nativeEvent.contentOffset.x / SCREEN_WIDTH);
-    setCurrentIndex(index);
+    if (index !== currentIndex && index >= 0 && index < SLIDES.length) {
+      if (Platform.OS !== 'web') {
+        try {
+          Haptics.selectionAsync();
+        } catch {}
+      }
+      setCurrentIndex(index);
+    }
   };
 
   const handleNext = () => {
@@ -83,6 +99,11 @@ export default function OnboardingScreen() {
   };
 
   const handleGetStarted = async () => {
+    if (Platform.OS !== 'web') {
+      try {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch {}
+    }
     await setOnboardingComplete();
     router.replace('/(auth)/login');
   };
@@ -94,12 +115,17 @@ export default function OnboardingScreen() {
 
   const renderSlide = ({ item }: { item: OnboardingSlide }) => (
     <View style={[styles.slide, { width: SCREEN_WIDTH }]}>
-      {/* Decorative background circle */}
+      {/* Decorative background glow badge */}
       <View style={styles.illustrationContainer}>
-        <View style={[styles.decorCircleOuter, { borderColor: item.accent + '15' }]}>
-          <View style={[styles.decorCircleInner, { backgroundColor: item.accent + '10' }]}>
-            <Text style={styles.slideIcon}>{item.icon}</Text>
-          </View>
+        <View style={[styles.decorCircleOuter, { borderColor: item.accent + '25' }]}>
+          <LinearGradient
+            colors={item.gradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.decorCircleInner}
+          >
+            <Ionicons name={item.vectorIcon} size={64} color="#FFFFFF" />
+          </LinearGradient>
         </View>
       </View>
 
@@ -109,7 +135,7 @@ export default function OnboardingScreen() {
   );
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+    <View style={[styles.container, { paddingTop: Math.max(insets.top, 20), paddingBottom: Math.max(insets.bottom, 16) }]}>
       {/* Skip button */}
       {!isLastSlide && (
         <View style={styles.skipContainer}>
@@ -155,8 +181,9 @@ export default function OnboardingScreen() {
         {/* CTA Button */}
         <View style={styles.buttonContainer}>
           <PocksyButton
-            title={isLastSlide ? 'Get Started' : 'Next'}
+            title={isLastSlide ? 'Get Started' : 'Continue'}
             onPress={handleNext}
+            icon={isLastSlide ? <Ionicons name="sparkles" size={18} color="#FFFFFF" /> : <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />}
           />
         </View>
       </View>
@@ -167,12 +194,12 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.offWhite,
+    backgroundColor: colors.background,
   },
   skipContainer: {
     position: 'absolute',
-    top: 60,
-    right: Spacing.base,
+    top: 50,
+    right: Spacing.lg,
     zIndex: 10,
   },
   slide: {
@@ -193,35 +220,34 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
+    ...Shadows.glow,
   },
   decorCircleInner: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
+    width: 156,
+    height: 156,
+    borderRadius: 78,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  slideIcon: {
-    fontSize: 64,
-  },
   slideTitle: {
-    fontSize: FontSize['2xl'],
+    fontSize: FontSize['3xl'],
     fontWeight: FontWeight.bold,
     color: colors.textPrimary,
     textAlign: 'center',
     letterSpacing: -0.5,
-    lineHeight: 36,
-    marginBottom: Spacing.base,
+    lineHeight: 38,
+    marginBottom: Spacing.sm,
   },
   slideSubtitle: {
-    fontSize: FontSize.md,
+    fontSize: FontSize.base,
     color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 26,
+    lineHeight: 24,
+    paddingHorizontal: Spacing.md,
   },
   bottomSection: {
     paddingHorizontal: Spacing.xl,
-    paddingBottom: Spacing['2xl'],
+    paddingBottom: Spacing.xl,
   },
   pagination: {
     flexDirection: 'row',
@@ -235,7 +261,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   dotActive: {
-    width: 24,
+    width: 28,
     backgroundColor: colors.primary,
   },
   dotInactive: {
@@ -246,3 +272,4 @@ const styles = StyleSheet.create({
     width: '100%',
   },
 });
+

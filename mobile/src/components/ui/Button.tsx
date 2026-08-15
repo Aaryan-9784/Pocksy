@@ -1,6 +1,6 @@
 /**
- * PocksyButton — Premium button component
- * Variants: primary, secondary, outline, ghost, danger
+ * PocksyButton — Premium interactive button component
+ * Supports gradient, solid, outline, ghost, and danger variants with tactile haptics
  */
 
 import React from 'react';
@@ -9,12 +9,15 @@ import {
   Text,
   StyleSheet,
   ActivityIndicator,
+  Platform,
   type ViewStyle,
   type TextStyle,
 } from 'react-native';
-import { Colors, BorderRadius, FontSize, FontWeight, Spacing } from '@/constants/theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
+import { Colors, BorderRadius, FontSize, FontWeight, Spacing, Shadows } from '@/constants/theme';
 
-type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+type ButtonVariant = 'primary' | 'gradient' | 'secondary' | 'outline' | 'ghost' | 'danger';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
 interface PocksyButtonProps {
@@ -28,22 +31,15 @@ interface PocksyButtonProps {
   style?: ViewStyle;
   textStyle?: TextStyle;
   fullWidth?: boolean;
+  enableHaptics?: boolean;
 }
 
 const colors = Colors.light;
 
-const variantStyles: Record<ButtonVariant, { bg: string; text: string; border?: string }> = {
-  primary: { bg: colors.primary, text: '#FFFFFF' },
-  secondary: { bg: colors.primaryLight, text: colors.primary },
-  outline: { bg: 'transparent', text: colors.primary, border: colors.primary },
-  ghost: { bg: 'transparent', text: colors.textPrimary },
-  danger: { bg: colors.danger, text: '#FFFFFF' },
-};
-
-const sizeStyles: Record<ButtonSize, { paddingV: number; paddingH: number; fontSize: number }> = {
-  sm: { paddingV: Spacing.sm, paddingH: Spacing.base, fontSize: FontSize.sm },
-  md: { paddingV: Spacing.md, paddingH: Spacing.lg, fontSize: FontSize.base },
-  lg: { paddingV: Spacing.base, paddingH: Spacing.xl, fontSize: FontSize.md },
+const sizeStyles: Record<ButtonSize, { paddingV: number; paddingH: number; fontSize: number; minHeight: number }> = {
+  sm: { paddingV: Spacing.xs, paddingH: Spacing.md, fontSize: FontSize.xs, minHeight: 36 },
+  md: { paddingV: Spacing.sm, paddingH: Spacing.lg, fontSize: FontSize.sm, minHeight: 46 },
+  lg: { paddingV: Spacing.md, paddingH: Spacing.xl, fontSize: FontSize.base, minHeight: 54 },
 };
 
 export function PocksyButton({
@@ -57,27 +53,112 @@ export function PocksyButton({
   style,
   textStyle,
   fullWidth = true,
+  enableHaptics = true,
 }: PocksyButtonProps) {
-  const v = variantStyles[variant];
   const s = sizeStyles[size];
   const isDisabled = disabled || loading;
 
+  const handlePress = () => {
+    if (isDisabled) return;
+    if (enableHaptics && Platform.OS !== 'web') {
+      try {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } catch {}
+    }
+    onPress();
+  };
+
+  const isGradient = variant === 'primary' || variant === 'gradient';
+
+  if (isGradient) {
+    return (
+      <TouchableOpacity
+        onPress={handlePress}
+        disabled={isDisabled}
+        activeOpacity={0.85}
+        style={[
+          styles.container,
+          fullWidth && styles.fullWidth,
+          isDisabled && styles.disabled,
+          style,
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel={title}
+        accessibilityState={{ disabled: isDisabled }}
+      >
+        <LinearGradient
+          colors={colors.gradientPrimary}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[
+            styles.base,
+            {
+              paddingVertical: s.paddingV,
+              paddingHorizontal: s.paddingH,
+              minHeight: s.minHeight,
+            },
+          ]}
+        >
+          {loading ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <>
+              {icon && <>{icon}</>}
+              <Text
+                style={[
+                  styles.text,
+                  {
+                    color: '#FFFFFF',
+                    fontSize: s.fontSize,
+                    marginLeft: icon ? Spacing.sm : 0,
+                  },
+                  textStyle,
+                ]}
+              >
+                {title}
+              </Text>
+            </>
+          )}
+        </LinearGradient>
+      </TouchableOpacity>
+    );
+  }
+
+  const getVariantStyle = () => {
+    switch (variant) {
+      case 'secondary':
+        return { bg: colors.primaryLight, text: colors.primary, border: 'transparent' };
+      case 'outline':
+        return { bg: 'transparent', text: colors.primary, border: colors.border };
+      case 'ghost':
+        return { bg: 'transparent', text: colors.textPrimary, border: 'transparent' };
+      case 'danger':
+        return { bg: colors.danger, text: '#FFFFFF', border: 'transparent' };
+      default:
+        return { bg: colors.primary, text: '#FFFFFF', border: 'transparent' };
+    }
+  };
+
+  const v = getVariantStyle();
+
   return (
     <TouchableOpacity
-      onPress={onPress}
+      onPress={handlePress}
       disabled={isDisabled}
-      activeOpacity={0.8}
+      activeOpacity={0.75}
       style={[
         styles.base,
         {
           backgroundColor: v.bg,
           paddingVertical: s.paddingV,
           paddingHorizontal: s.paddingH,
-          borderColor: v.border || 'transparent',
-          borderWidth: v.border ? 1.5 : 0,
-          opacity: isDisabled ? 0.6 : 1,
+          borderColor: v.border,
+          borderWidth: v.border !== 'transparent' ? 1.5 : 0,
+          minHeight: s.minHeight,
         },
         fullWidth && styles.fullWidth,
+        isDisabled && styles.disabled,
+        variant === 'outline' && { backgroundColor: colors.white },
         style,
       ]}
       accessibilityRole="button"
@@ -109,18 +190,26 @@ export function PocksyButton({
 }
 
 const styles = StyleSheet.create({
+  container: {
+    borderRadius: BorderRadius.md,
+    overflow: 'hidden',
+    ...Shadows.md,
+  },
   base: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: BorderRadius.md,
-    minHeight: 48,
   },
   fullWidth: {
     width: '100%',
   },
+  disabled: {
+    opacity: 0.55,
+  },
   text: {
     fontWeight: FontWeight.semibold,
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
   },
 });
+

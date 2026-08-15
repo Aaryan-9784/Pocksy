@@ -1,6 +1,6 @@
 /**
  * Pocksy Add Transaction Screen
- * Full form for adding income/expense transactions
+ * Modern input flow with amount presets, vector categories, and tactile haptics
  */
 
 import React, { useState } from 'react';
@@ -13,17 +13,22 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  TextInput,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { Colors, FontSize, FontWeight, Spacing, BorderRadius, Shadows } from '@/constants/theme';
-import { PocksyButton, PocksyInput, AmountInput, CategoryIcon } from '@/components/ui';
+import { PocksyButton, PocksyInput, CategoryIcon } from '@/components/ui';
 import { EXPENSE_CATEGORIES, INCOME_SOURCES, PAYMENT_METHODS } from '@/constants/categories';
 import { useTransactionStore } from '@/store/transactionStore';
 import { useDashboardStore } from '@/store/dashboardStore';
 import type { TransactionType } from '@/types';
 
 const colors = Colors.light;
+
+const PRESET_AMOUNTS = [100, 200, 500, 1000, 2000, 5000];
 
 export default function AddScreen() {
   const insets = useSafeAreaInsets();
@@ -35,24 +40,57 @@ export default function AddScreen() {
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('upi');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const categories = type === 'expense' ? EXPENSE_CATEGORIES : INCOME_SOURCES;
 
+  const handleTypeToggle = (newType: TransactionType) => {
+    if (Platform.OS !== 'web') {
+      try {
+        Haptics.selectionAsync();
+      } catch {}
+    }
+    setType(newType);
+    setCategory('');
+    setErrors((prev) => ({ ...prev, category: '' }));
+  };
+
+  const handlePresetSelect = (val: number) => {
+    if (Platform.OS !== 'web') {
+      try {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } catch {}
+    }
+    const current = parseFloat(amount) || 0;
+    setAmount((current + val).toString());
+    setErrors((prev) => ({ ...prev, amount: '' }));
+  };
+
+  const handleCategorySelect = (catId: string) => {
+    if (Platform.OS !== 'web') {
+      try {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } catch {}
+    }
+    setCategory(catId);
+    setErrors((prev) => ({ ...prev, category: '' }));
+  };
+
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!amount || parseFloat(amount) <= 0) {
-      newErrors.amount = 'Enter a valid amount';
+    const numAmount = parseFloat(amount);
+    if (!amount || isNaN(numAmount) || numAmount <= 0) {
+      newErrors.amount = 'Please enter a valid amount';
     }
     if (!category) {
-      newErrors.category = 'Select a category';
+      newErrors.category = 'Please choose a category';
     }
     if (!description.trim()) {
-      newErrors.description = 'Enter a description';
+      newErrors.description = 'Please enter a short description';
     }
 
     setErrors(newErrors);
@@ -60,7 +98,14 @@ export default function AddScreen() {
   };
 
   const handleSubmit = async () => {
-    if (!validate()) return;
+    if (!validate()) {
+      if (Platform.OS !== 'web') {
+        try {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        } catch {}
+      }
+      return;
+    }
 
     setLoading(true);
     try {
@@ -77,19 +122,32 @@ export default function AddScreen() {
       // Refresh dashboard data
       refreshDashboard();
 
-      Alert.alert(
-        'Success! 🎉',
-        `${type === 'income' ? 'Income' : 'Expense'} of ₹${amount} added.`,
-        [{ text: 'OK' }]
-      );
+      if (Platform.OS !== 'web') {
+        try {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } catch {}
+      }
 
-      // Reset form
-      setAmount('');
-      setCategory('');
-      setDescription('');
-      setPaymentMethod('');
-      setNotes('');
-      setErrors({});
+      Alert.alert(
+        'Transaction Added ✨',
+        `${type === 'income' ? 'Income' : 'Expense'} of ₹${amount} logged successfully.`,
+        [
+          {
+            text: 'Done',
+            onPress: () => router.push('/(tabs)'),
+          },
+          {
+            text: 'Add Another',
+            onPress: () => {
+              setAmount('');
+              setCategory('');
+              setDescription('');
+              setNotes('');
+              setErrors({});
+            },
+          },
+        ]
+      );
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Failed to add transaction');
     } finally {
@@ -103,139 +161,223 @@ export default function AddScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
-        style={[styles.container, { paddingTop: insets.top }]}
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing['4xl'] }]}
+        style={[styles.container, { paddingTop: Math.max(insets.top, 16) }]}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing['5xl'] }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+        {/* Top Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Add Transaction</Text>
+          <Text style={styles.title}>Add Record</Text>
+          <Text style={styles.subtitle}>Log your income or expense quickly</Text>
         </View>
 
-        {/* Type Toggle */}
-        <View style={styles.typeToggle}>
+        {/* Type Switcher */}
+        <View style={styles.typeSwitcher}>
           <TouchableOpacity
             style={[
-              styles.typeButton,
-              type === 'expense' && styles.typeButtonExpense,
+              styles.typeTab,
+              type === 'expense' && styles.typeTabExpenseActive,
             ]}
-            onPress={() => { setType('expense'); setCategory(''); }}
+            onPress={() => handleTypeToggle('expense')}
+            activeOpacity={0.8}
           >
-            <Text style={[
-              styles.typeButtonText,
-              type === 'expense' && styles.typeButtonTextActive,
-            ]}>
+            <Ionicons
+              name="arrow-up-circle"
+              size={18}
+              color={type === 'expense' ? '#FFFFFF' : colors.expense}
+            />
+            <Text
+              style={[
+                styles.typeTabText,
+                type === 'expense' && styles.typeTabTextActive,
+              ]}
+            >
               Expense
             </Text>
           </TouchableOpacity>
+
           <TouchableOpacity
             style={[
-              styles.typeButton,
-              type === 'income' && styles.typeButtonIncome,
+              styles.typeTab,
+              type === 'income' && styles.typeTabIncomeActive,
             ]}
-            onPress={() => { setType('income'); setCategory(''); }}
+            onPress={() => handleTypeToggle('income')}
+            activeOpacity={0.8}
           >
-            <Text style={[
-              styles.typeButtonText,
-              type === 'income' && styles.typeButtonTextActive,
-            ]}>
+            <Ionicons
+              name="arrow-down-circle"
+              size={18}
+              color={type === 'income' ? '#FFFFFF' : colors.income}
+            />
+            <Text
+              style={[
+                styles.typeTabText,
+                type === 'income' && styles.typeTabTextActive,
+              ]}
+            >
               Income
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Amount */}
-        <View style={styles.section}>
-          <Text style={styles.label}>Amount</Text>
-          <View style={styles.amountContainer}>
+        {/* Hero Amount Input Card */}
+        <View style={styles.amountCard}>
+          <Text style={styles.amountCardLabel}>ENTER AMOUNT</Text>
+          <View style={styles.amountInputRow}>
             <Text style={styles.currencySymbol}>₹</Text>
-            <PocksyInput
-              placeholder="0.00"
+            <TextInput
+              style={styles.amountInput}
+              placeholder="0"
+              placeholderTextColor={colors.textMuted}
               value={amount}
-              onChangeText={(text) => setAmount(text.replace(/[^0-9.]/g, ''))}
+              onChangeText={(text) => {
+                setAmount(text.replace(/[^0-9.]/g, ''));
+                setErrors((prev) => ({ ...prev, amount: '' }));
+              }}
               keyboardType="decimal-pad"
-              error={errors.amount}
+              selectionColor={colors.primary}
+              autoFocus={false}
             />
           </View>
-        </View>
+          {errors.amount ? (
+            <Text style={styles.amountErrorText}>{errors.amount}</Text>
+          ) : null}
 
-        {/* Category */}
-        <View style={styles.section}>
-          <Text style={styles.label}>Category {errors.category ? <Text style={styles.errorText}>- {errors.category}</Text> : null}</Text>
-          <View style={styles.categoryGrid}>
-            {categories.map((cat) => (
+          {/* Quick preset chips */}
+          <View style={styles.presetChipsRow}>
+            {PRESET_AMOUNTS.map((val) => (
               <TouchableOpacity
-                key={cat.id}
-                style={[
-                  styles.categoryChip,
-                  category === cat.id && { backgroundColor: cat.bgColor, borderColor: cat.color },
-                ]}
-                onPress={() => setCategory(cat.id)}
+                key={val}
+                style={styles.presetChip}
+                onPress={() => handlePresetSelect(val)}
+                activeOpacity={0.7}
               >
-                <Text style={styles.categoryIcon}>{cat.icon}</Text>
-                <Text style={[
-                  styles.categoryLabel,
-                  category === cat.id && { color: cat.color, fontWeight: FontWeight.semibold },
-                ]}>
-                  {cat.label}
-                </Text>
+                <Text style={styles.presetChipText}>+₹{val}</Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        {/* Description */}
+        {/* Category Grid */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>SELECT CATEGORY</Text>
+            {errors.category ? (
+              <Text style={styles.sectionError}>{errors.category}</Text>
+            ) : null}
+          </View>
+
+          <View style={styles.categoryGrid}>
+            {categories.map((cat) => {
+              const isSelected = category === cat.id;
+              return (
+                <TouchableOpacity
+                  key={cat.id}
+                  style={[
+                    styles.categoryCard,
+                    isSelected && { borderColor: cat.color, backgroundColor: colors.white },
+                    isSelected && styles.categoryCardSelected,
+                  ]}
+                  onPress={() => handleCategorySelect(cat.id)}
+                  activeOpacity={0.75}
+                >
+                  <CategoryIcon categoryId={cat.id} size={42} />
+                  <Text
+                    style={[
+                      styles.categoryName,
+                      isSelected && { color: cat.color, fontWeight: FontWeight.bold },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {cat.label}
+                  </Text>
+                  {isSelected && (
+                    <View style={[styles.selectedCheck, { backgroundColor: cat.color }]}>
+                      <Ionicons name="checkmark" size={10} color="#FFFFFF" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Description Input */}
         <View style={styles.section}>
           <PocksyInput
-            label="Description"
-            placeholder={type === 'expense' ? 'e.g. Lunch at cafe' : 'e.g. Monthly salary'}
+            label="DESCRIPTION"
+            placeholder={type === 'expense' ? 'e.g. Grocery store, Uber ride' : 'e.g. Monthly salary, Freelance project'}
             value={description}
-            onChangeText={setDescription}
+            onChangeText={(text) => {
+              setDescription(text);
+              setErrors((prev) => ({ ...prev, description: '' }));
+            }}
             error={errors.description}
+            leftIcon={<Ionicons name="create-outline" size={18} color={colors.textSecondary} />}
           />
         </View>
 
-        {/* Payment Method */}
+        {/* Payment Method Selector */}
         <View style={styles.section}>
-          <Text style={styles.label}>Payment Method (Optional)</Text>
-          <View style={styles.paymentRow}>
-            {PAYMENT_METHODS.map((pm) => (
-              <TouchableOpacity
-                key={pm.id}
-                style={[
-                  styles.paymentChip,
-                  paymentMethod === pm.id && styles.paymentChipActive,
-                ]}
-                onPress={() => setPaymentMethod(paymentMethod === pm.id ? '' : pm.id)}
-              >
-                <Text style={styles.paymentIcon}>{pm.icon}</Text>
-                <Text style={[
-                  styles.paymentLabel,
-                  paymentMethod === pm.id && styles.paymentLabelActive,
-                ]}>
-                  {pm.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+          <Text style={styles.sectionTitle}>PAYMENT METHOD</Text>
+          <View style={styles.paymentMethodRow}>
+            {PAYMENT_METHODS.map((pm) => {
+              const isSelected = paymentMethod === pm.id;
+              return (
+                <TouchableOpacity
+                  key={pm.id}
+                  style={[
+                    styles.paymentChip,
+                    isSelected && styles.paymentChipActive,
+                  ]}
+                  onPress={() => {
+                    if (Platform.OS !== 'web') {
+                      try {
+                        Haptics.selectionAsync();
+                      } catch {}
+                    }
+                    setPaymentMethod(pm.id);
+                  }}
+                  activeOpacity={0.75}
+                >
+                  <Ionicons
+                    name={pm.vectorIcon as any}
+                    size={16}
+                    color={isSelected ? colors.primary : colors.textSecondary}
+                  />
+                  <Text
+                    style={[
+                      styles.paymentChipLabel,
+                      isSelected && styles.paymentChipLabelActive,
+                    ]}
+                  >
+                    {pm.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
-        {/* Notes */}
+        {/* Additional Notes */}
         <View style={styles.section}>
           <PocksyInput
-            label="Notes (Optional)"
-            placeholder="Any additional details..."
+            label="NOTES (OPTIONAL)"
+            placeholder="Add any extra notes or tags..."
             value={notes}
             onChangeText={setNotes}
+            leftIcon={<Ionicons name="document-text-outline" size={18} color={colors.textSecondary} />}
           />
         </View>
 
-        {/* Submit */}
-        <View style={styles.submitContainer}>
+        {/* Submit Button */}
+        <View style={styles.submitWrapper}>
           <PocksyButton
             title={`Add ${type === 'income' ? 'Income' : 'Expense'}`}
             onPress={handleSubmit}
             loading={loading}
+            icon={<Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />}
           />
         </View>
       </ScrollView>
@@ -249,133 +391,217 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: colors.offWhite,
+    backgroundColor: colors.background,
   },
   content: {
     paddingHorizontal: Spacing.xl,
   },
   header: {
-    paddingTop: Spacing.base,
-    paddingBottom: Spacing.lg,
+    paddingTop: Spacing.xs,
+    paddingBottom: Spacing.md,
   },
   title: {
-    fontSize: FontSize.xl,
+    fontSize: FontSize['2xl'],
     fontWeight: FontWeight.bold,
     color: colors.textPrimary,
     letterSpacing: -0.5,
   },
-  typeToggle: {
+  subtitle: {
+    fontSize: FontSize.xs,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  typeSwitcher: {
     flexDirection: 'row',
-    backgroundColor: colors.white,
-    borderRadius: BorderRadius.md,
+    backgroundColor: colors.card,
+    borderRadius: BorderRadius.lg,
     padding: 4,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
     ...Shadows.sm,
   },
-  typeButton: {
+  typeTab: {
     flex: 1,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.sm,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
   },
-  typeButtonExpense: {
-    backgroundColor: colors.danger + '15',
+  typeTabExpenseActive: {
+    backgroundColor: colors.expense,
   },
-  typeButtonIncome: {
-    backgroundColor: colors.success + '15',
+  typeTabIncomeActive: {
+    backgroundColor: colors.income,
   },
-  typeButtonText: {
-    fontSize: FontSize.base,
-    fontWeight: FontWeight.medium,
+  typeTabText: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.semibold,
     color: colors.textSecondary,
   },
-  typeButtonTextActive: {
+  typeTabTextActive: {
+    color: '#FFFFFF',
+    fontWeight: FontWeight.bold,
+  },
+  amountCard: {
+    backgroundColor: colors.card,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.xl,
+    alignItems: 'center',
+    marginBottom: Spacing.xl,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    ...Shadows.sm,
+  },
+  amountCardLabel: {
+    fontSize: FontSize['2xs'],
+    color: colors.textMuted,
+    fontWeight: FontWeight.bold,
+    letterSpacing: 0.8,
+    marginBottom: Spacing.xs,
+  },
+  amountInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: Spacing.xs,
+  },
+  currencySymbol: {
+    fontSize: FontSize['3xl'],
+    fontWeight: FontWeight.bold,
+    color: colors.primary,
+    marginRight: 6,
+  },
+  amountInput: {
+    fontSize: FontSize['4xl'],
     fontWeight: FontWeight.bold,
     color: colors.textPrimary,
+    minWidth: 120,
+    textAlign: 'center',
+    letterSpacing: -1,
+    padding: 0,
+  },
+  amountErrorText: {
+    color: colors.danger,
+    fontSize: FontSize.xs,
+    marginTop: Spacing.xs,
+    fontWeight: FontWeight.medium,
+  },
+  presetChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    marginTop: Spacing.md,
+  },
+  presetChip: {
+    backgroundColor: colors.primaryLight,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  presetChipText: {
+    fontSize: FontSize.xs,
+    color: colors.primary,
+    fontWeight: FontWeight.semibold,
   },
   section: {
     marginBottom: Spacing.lg,
   },
-  label: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.semibold,
-    color: colors.textPrimary,
-    marginBottom: Spacing.sm,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  errorText: {
-    color: colors.danger,
-    fontWeight: FontWeight.regular,
-    textTransform: 'none',
-    letterSpacing: 0,
-  },
-  amountContainer: {
+  sectionHeaderRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: Spacing.sm,
   },
-  currencySymbol: {
-    fontSize: FontSize.xl,
+  sectionTitle: {
+    fontSize: FontSize.xs,
     fontWeight: FontWeight.bold,
-    color: colors.textPrimary,
-    marginRight: Spacing.sm,
-    marginBottom: Spacing.base,
+    color: colors.textSecondary,
+    letterSpacing: 0.6,
+    marginBottom: Spacing.xs,
+  },
+  sectionError: {
+    fontSize: FontSize.xs,
+    color: colors.danger,
+    fontWeight: FontWeight.medium,
   },
   categoryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.sm,
   },
-  categoryChip: {
-    flexDirection: 'row',
+  categoryCard: {
+    width: '30.5%',
+    backgroundColor: colors.card,
+    borderRadius: BorderRadius.lg,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xs,
     alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: colors.white,
+    justifyContent: 'center',
     borderWidth: 1.5,
-    borderColor: colors.border,
-    gap: 6,
+    borderColor: colors.borderLight,
+    position: 'relative',
+    ...Shadows.sm,
   },
-  categoryIcon: {
-    fontSize: 16,
+  categoryCardSelected: {
+    ...Shadows.md,
   },
-  categoryLabel: {
-    fontSize: FontSize.sm,
-    color: colors.textSecondary,
+  categoryName: {
+    fontSize: FontSize.xs,
+    color: colors.textPrimary,
+    fontWeight: FontWeight.medium,
+    marginTop: 6,
+    textAlign: 'center',
   },
-  paymentRow: {
+  selectedCheck: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  paymentMethodRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.sm,
+    marginTop: Spacing['2xs'],
   },
   paymentChip: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: colors.white,
+    borderRadius: BorderRadius.md,
+    backgroundColor: colors.card,
     borderWidth: 1.5,
-    borderColor: colors.border,
-    gap: 4,
+    borderColor: colors.borderLight,
+    ...Shadows.sm,
   },
   paymentChipActive: {
     borderColor: colors.primary,
     backgroundColor: colors.primaryLight,
   },
-  paymentIcon: {
-    fontSize: 14,
-  },
-  paymentLabel: {
-    fontSize: FontSize.sm,
+  paymentChipLabel: {
+    fontSize: FontSize.xs,
     color: colors.textSecondary,
+    fontWeight: FontWeight.medium,
   },
-  paymentLabelActive: {
+  paymentChipLabelActive: {
     color: colors.primary,
-    fontWeight: FontWeight.semibold,
+    fontWeight: FontWeight.bold,
   },
-  submitContainer: {
-    marginTop: Spacing.lg,
+  submitWrapper: {
+    marginTop: Spacing.md,
+    marginBottom: Spacing.xl,
   },
 });
+
