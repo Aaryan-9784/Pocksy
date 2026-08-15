@@ -1,37 +1,147 @@
-# Dependencies
+# ==========================================
+# Pocksy — Master Git Ignore Configuration
+# ==========================================
+
+# ------------------------------------------
+# 📦 Dependencies & Package Managers
+# ------------------------------------------
 node_modules/
+*/node_modules/
+.pnp
+.pnp.js
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
 
-# Environment
+# ------------------------------------------
+# 🔐 Environment Variables & Secrets
+# ------------------------------------------
 .env
+.env.*
+.env*.local
 .env.local
-.env.production
+.env.development.local
+.env.test.local
+.env.production.local
 
-# Build output
-dist/
-build/
+# Preserve example environment files
+!.env.example
+!*/.env.example
 
-# Expo
-.expo/
-*.jks
+# Certificates, Keys & Keystores
+*.pem
+*.key
+*.cert
+*.crt
 *.p8
 *.p12
-*.key
+*.jks
+*.keystore
 *.mobileprovision
+
+# ------------------------------------------
+# 🏗️ Build Outputs & Compiled Code
+# ------------------------------------------
+dist/
+*/dist/
+build/
+*/build/
+web-build/
+*/web-build/
+out/
+bin/
+obj/
+*.tsbuildinfo
+.tscache/
+
+# ------------------------------------------
+# 📱 Expo & Metro Bundler
+# ------------------------------------------
+.expo/
+*/.expo/
+.expo-shared/
+*/.expo-shared/
+.metro-health-check*
 *.orig.*
 
-# OS
-.DS_Store
-Thumbs.db
+# ------------------------------------------
+# 🤖 Native Prebuilds (iOS / Android)
+# ------------------------------------------
+/mobile/ios/
+/mobile/android/
+/ios/
+/android/
+.kotlin/
 
-# IDE
-.vscode/
+# ------------------------------------------
+# 📝 Logs & Debugging
+# ------------------------------------------
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ------------------------------------------
+# 🧪 Testing & Code Coverage
+# ------------------------------------------
+coverage/
+*/coverage/
+.nyc_output/
+*.lcov
+
+# ------------------------------------------
+# 🗂️ Cache & Temporary Files
+# ------------------------------------------
+.cache/
+*/.cache/
+.turbo/
+.eslintcache
+.stylelintcache
+*.tmp
+*.temp
+
+# ------------------------------------------
+# 💻 Operating System Metadata
+# ------------------------------------------
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+
+# ------------------------------------------
+# 🛠️ Editor & IDE Configuration
+# ------------------------------------------
 .idea/
 *.swp
 *.swo
+*.swn
+*~
+*.sublime-workspace
+*.sublime-project
 
-# Logs
-*.log
-npm-debug.log*
-
-# Coverage
-coverage/
+# VS Code (ignore user settings and state, keep recommendations if needed)
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
